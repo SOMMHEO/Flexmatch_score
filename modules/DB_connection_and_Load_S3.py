@@ -108,10 +108,29 @@ def load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_fil
 
     # 주차 리스트 생성 (현재 주 포함하여 `weeks_back`만큼)
     today = datetime.now()
-    week_year_pairs = [
-        (today - timedelta(weeks=w)).isocalendar()[:2]
-        for w in range(weeks_back)
-    ]
+    weekday = today.weekday()
+    # week_year_pairs = [
+    #     (today - timedelta(weeks=w)).isocalendar()[:2]
+    #     for w in range(weeks_back)
+    # ]
+    # week_year_pairs = [
+    #     (today - timedelta(weeks=2)).isocalendar()[:2],  # 저저번주
+    #     (today - timedelta(weeks=1)).isocalendar()[:2],  # 저번주
+    # ]
+
+    # 수집 날짜멸 데이터 로딩
+    if weekday <= 2:
+        # 월~수
+        week_year_pairs = week_year_pairs = [
+        (today - timedelta(weeks=2)).isocalendar()[:2],  # 저저번주
+        (today - timedelta(weeks=1)).isocalendar()[:2],  # 저번주
+        ]
+    else:
+        weeks_year_pairs = [
+            (today - timedelta(weeks=1)).isocalendar()[:2],
+            today.isocalendar()[:2]
+        ]
+
 
     # 결과 저장용 딕셔너리 초기화
     merged_data_by_table = {table_name: {} for table_name in table_list}
@@ -158,5 +177,5 @@ def load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_fil
             print(f"[Warning] Not enough data for table {table_name} to determine prev/current weeks.")
 
     
-    return merged_data_by_table
+    return recent_weeks_data
 

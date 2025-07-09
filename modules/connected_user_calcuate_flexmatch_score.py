@@ -61,7 +61,7 @@ def calculate_follower_engagement(media_engagement_profile_merged_df):
         'follow_cnt' : 'first'
     }).reset_index()
 
-    engaged_df['avg_engagement_per_post'] = ((engaged_df['like_cnt'] + engaged_df['cmnt_cnt']) / 25) # 해당 부분 50으로 변경될 수 있음
+    engaged_df['avg_engagement_per_post'] = ((engaged_df['like_cnt'] + engaged_df['cmnt_cnt']) / 25)
     engaged_df['estimated_total_engagement'] = engaged_df['avg_engagement_per_post'] * engaged_df['media_cnt']
     engaged_df['follower_total_engagement'] = (engaged_df['estimated_total_engagement'] / engaged_df['follower_cnt']) * 100
     
