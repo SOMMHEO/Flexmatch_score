@@ -118,14 +118,6 @@ def not_connected_user_flexmatch_score(activity_df, growth_rate_df, follower_eng
     flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
     flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'trend_score', 'follower_total_engagement', 'follower_retention_rate', 'avg_post_efficiency']]
 
-    # flexmatch_score.rename(columns={
-    #     'activity_score' : '크리에이터 활동성',
-    #     'trend_score' : '팔로워순증감률', 
-    #     'follower_total_engagement' : '콘텐츠 참여도' ,
-    #     'follower_retention_rate' : '팔로워 충성도',
-    #     'avg_post_efficiency' : '콘텐츠 효율성',
-    # }, inplace=True)
-
     not_connected_flexmatch_score_table = flexmatch_score.copy()
     not_connected_flexmatch_score_table.dropna(inplace=True)
     
