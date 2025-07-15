@@ -1,6 +1,6 @@
 from modules.DB_connection_and_Load_S3 import *
 from modules.data_preprocessing import *
-from modules.non_connected_user_calcuate_flexmatch_score import *
+from modules.not_connected_user_calcuate_flexmatch_score import *
 
 
 ssh = SSHMySQLConnector()
@@ -81,7 +81,7 @@ def main():
     check_inf(post_efficiency_df)
 
     ## create flexmatch score table by influencer scale type
-    not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(activity_df, growth_rate_df, follower_engagment_df, follower_loyalty_df, post_efficiency_df)
+    not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_engagment_df, follower_loyalty_df, post_efficiency_df)
     
     nc_nano = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='nano']
     nc_micro = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='micro']
@@ -94,10 +94,10 @@ def main():
     influencer_scale_names=['nano', 'micro', 'mid', 'macro', 'mega']
     influencer_scale_df_list=[nc_nano, nc_micro, nc_mid, nc_macro, nc_mega] # 여기에 connected user도 같이 포함하면 한번에 업로드 되지 않을까 함
 
-    normalized_df, normalized_dic = normalize_influencer_scores(influencer_scale_names, influencer_scale_df_list)
+    normalized_df, normalized_all_dic = normalize_influencer_scores(influencer_scale_names, influencer_scale_df_list)
     
     ## DB Insert
-    ssh.insert_query_with_lookup('op_mem_seller_score', normalized_dic)
+    ssh.insert_query_with_lookup('op_mem_seller_score', list(normalized_all_dic.values()))
 
 
 if __name__=='__main__':

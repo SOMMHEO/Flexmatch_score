@@ -33,7 +33,7 @@ def calculate_activity_score(recent_media_dtl_df): # 두 개의 테이블 중 �
     # 활동성 점수 계산 (간격의 역수로 환산) -> 점수 정규화 (업로드 간격이 짧을수록 점수가 높아지도록 역수를 취해서 계산한 것)
     # 업로드 간격이 너무 짧은 유저의 경우 inf로 계산되는 것을 방지하기 위해서 scaling 진행
     activity_df['avg_upload_interval'] = activity_df['avg_upload_interval'].replace(0, 0.1)
-    activity_df['activity_score'] = 100 / activity_df['avg_upload_interval']
+    activity_df['activity_score'] =  activity_df['avg_upload_interval'] / 100
     
     return activity_df
 
@@ -51,19 +51,21 @@ def calculate_follower_growth_rate(time_series_df, recent_time_series_df):
     return growth_rate_df
 
 def calculate_follower_engagement(media_engagement_profile_merged_df):
-    media_engagement_profile_merged_df_copy = media_engagement_profile_merged_df[['acnt_id', 'media_id', 'follower_cnt', 'follow_cnt', 'like_cnt', 'cmnt_cnt', 'media_cnt']]
+    media_engagement_profile_merged_df_copy = media_engagement_profile_merged_df[['acnt_id', 'media_id', 'follower_cnt', 'like_cnt', 'cmnt_cnt', 'share_cnt', 'save_cnt', 'views_cnt', 'reach_cnt', 'media_cnt']]
+    # media_id는 조회가 되지만 실제로 media_cnt는 없는 경우가 있음
+    # media_engagement_profile_merged_df_copy = media_engagement_profile_merged_df_copy[media_engagement_profile_merged_df_copy['media_cnt'] != 0]
     
     engaged_df = media_engagement_profile_merged_df_copy.groupby(['acnt_id']).agg({
         'like_cnt' : 'sum',
         'cmnt_cnt' : 'sum',
+        'share_cnt' : 'sum',
+        'save_cnt' : 'sum',
         'media_cnt': 'first',
         'follower_cnt' : 'first',
-        'follow_cnt' : 'first'
     }).reset_index()
 
-    engaged_df['avg_engagement_per_post'] = ((engaged_df['like_cnt'] + engaged_df['cmnt_cnt']) / 25)
-    engaged_df['estimated_total_engagement'] = engaged_df['avg_engagement_per_post'] * engaged_df['media_cnt']
-    engaged_df['follower_total_engagement'] = (engaged_df['estimated_total_engagement'] / engaged_df['follower_cnt']) * 100
+    engaged_df['estimated_total_engagement'] = ((engaged_df['like_cnt'] + engaged_df['cmnt_cnt'] + engaged_df['share_cnt'] + engaged_df['save_cnt']) / ( engaged_df['media_cnt']*engaged_df['follower_cnt']))
+    engaged_df['follower_total_engagement'] = engaged_df['estimated_total_engagement'] * 100
     
     follower_engagment_df = engaged_df
 
@@ -92,44 +94,54 @@ def calculate_follower_loyalty(time_series_merged_df):
 def calculate_post_efficiency_df(media_engagement_profile_merged_df):
     media_engagement_profile_merged_df_copy = media_engagement_profile_merged_df.copy()
 
-    media_engagement_profile_merged_df_copy['post_efficiency'] = ((media_engagement_profile_merged_df_copy['like_cnt'] + media_engagement_profile_merged_df_copy['cmnt_cnt']) / media_engagement_profile_merged_df_copy['follower_cnt']) * 100
+    media_engagement_profile_merged_df_copy['post_efficiency'] = ((media_engagement_profile_merged_df_copy['like_cnt'] + media_engagement_profile_merged_df_copy['cmnt_cnt'] + media_engagement_profile_merged_df_copy['save_cnt'] + media_engagement_profile_merged_df_copy['share_cnt']) / media_engagement_profile_merged_df_copy['follower_cnt']) * 100
+    # media_engagement_profile_merged_df_copy['post_efficiency'] = ((media_engagement_profile_merged_df_copy['like_cnt'] + media_engagement_profile_merged_df_copy['cmnt_cnt'] + media_engagement_profile_merged_df_copy['save_cnt'] + media_engagement_profile_merged_df_copy['share_cnt']) / media_engagement_profile_merged_df_copy['views_cnt']) * 100
     post_efficiency_df = media_engagement_profile_merged_df_copy.groupby('acnt_id')['post_efficiency'].mean().reset_index()
     post_efficiency_df.rename(columns={'post_efficiency': 'avg_post_efficiency'}, inplace=True)
 
     return post_efficiency_df
 
-def not_connected_user_flexmatch_score(activity_df, growth_rate_df, follower_engagement_df, follower_loyalty_df, post_efficiency_df, recent_user_info_mtr):
+def calculate_post_popularity_df(media_engagement_profile_merged_df):
+    media_engagement_profile_merged_df_copy = media_engagement_profile_merged_df.copy()
+
+    media_engagement_profile_merged_df_copy['post_popularity'] = ((media_engagement_profile_merged_df_copy['like_cnt'] + media_engagement_profile_merged_df_copy['cmnt_cnt'] + media_engagement_profile_merged_df_copy['save_cnt'] + media_engagement_profile_merged_df_copy['share_cnt']) / media_engagement_profile_merged_df_copy['views_cnt']) * 100
+    # check_inf(media_engagement_profile_merged_df_copy)
+    media_engagement_profile_merged_df_copy.replace([np.inf, -np.inf], np.nan, inplace=True)
+    media_engagement_profile_merged_df_copy.dropna(subset=['post_popularity'], inplace=True)
+
+    post_popularity_df = media_engagement_profile_merged_df_copy.groupby('acnt_id')['post_popularity'].mean().reset_index()
+    post_popularity_df.rename(columns={'post_popularity': 'avg_post_popularity'}, inplace=True)
+
+    return post_popularity_df
+
+def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_engagement_df, follower_loyalty_df, post_efficiency_df, post_popularity_df):
     # 크리에이터 활동성
     creator_activity_score = activity_df[['acnt_id', 'activity_score']]
-    # 트렌드지수
-    creator_trend_score = growth_rate_df[['acnt_id', 'trend_score']]
+    # 트렌드지수 (팔로워 순변화량)
+    creator_follow_growth_rate = growth_rate_df[['acnt_id', 'follow_growth_rate']] # db 변수명 수정
     # 팔로워 참여도
     follower_engagement = follower_engagement_df[['acnt_id', 'follower_total_engagement']]
     # 팔로워 충성도
     follower_loyalty = follower_loyalty_df[['acnt_id', 'follower_retention_rate']]
     # 콘텐츠 효율성
     post_efficiency = post_efficiency_df[['acnt_id', 'avg_post_efficiency']]
+    # 콘텐츠 인기도
+    post_popularity = post_popularity_df[['acnt_id', 'avg_post_popularity']]
 
     # data_list
-    df_list = [creator_activity_score, creator_trend_score, follower_engagement, follower_loyalty, post_efficiency]
+    df_list = [creator_activity_score, creator_follow_growth_rate, follower_engagement, follower_loyalty, post_efficiency, post_popularity]
+
+    from functools import reduce
 
     flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='left'), df_list)
-    user_info_nm = recent_user_info_mtr[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
+    user_info_nm = user_info[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
     flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
-    flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'trend_score', 'follower_total_engagement', 'follower_retention_rate', 'avg_post_efficiency']]
+    flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_total_engagement', 'follower_retention_rate', 'avg_post_efficiency', 'avg_post_popularity']]
 
-    # flexmatch_score.rename(columns={
-    #     'activity_score' : '크리에이터 활동성',
-    #     'trend_score' : '팔로워순증감률', 
-    #     'follower_total_engagement' : '콘텐츠 참여도' ,
-    #     'follower_retention_rate' : '팔로워 충성도',
-    #     'avg_post_efficiency' : '콘텐츠 효율성',
-    # }, inplace=True)
-
-    not_connected_flexmatch_score_table = flexmatch_score.copy()
-    not_connected_flexmatch_score_table.dropna(inplace=True)
+    connected_flexmatch_score_table = flexmatch_score.copy()
+    connected_flexmatch_score_table.dropna(inplace=True)
     
-    return not_connected_flexmatch_score_table
+    return connected_flexmatch_score_table
 
 
 def normalize_influencer_scores(influencer_scale_names, influencer_scale_df_list, reverse_columns=None, feature_range=(0, 5)):
