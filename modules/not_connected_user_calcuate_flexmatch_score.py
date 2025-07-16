@@ -126,7 +126,7 @@ def not_connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, f
 def normalize_influencer_scores(influencer_scale_names, influencer_scale_df_list, reverse_columns=None, feature_range=(0, 5)):
 
     if reverse_columns is None:
-        reverse_columns = []
+        reverse_columns = ['activity_score']
 
     normalized_df_dict = {}
 
