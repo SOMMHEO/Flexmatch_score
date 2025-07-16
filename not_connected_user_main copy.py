@@ -26,12 +26,12 @@ def main():
     # connected_user & not_connected_user common table
     merged_data_by_table = load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_filename='merged_data.parquet')
     
-    recent_user_info_mtr = merged_data_by_table['RECNET_USER_INFO_MTR']['prev_week']
+    recent_user_info_mtr = merged_data_by_table['RECENT_USER_INFO_MTR']['prev_week']
     time_series_profile_info = merged_data_by_table['TIME_SERIES_PROFILE_INFO']['prev_week']
     by_user_id_media_dtl_info = merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['prev_week']
     by_date_media_agg_info = merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['prev_week']
 
-    recent_user_info_mtr_2 = merged_data_by_table['RECNET_USER_INFO_MTR']['current_week']
+    recent_user_info_mtr_2 = merged_data_by_table['RECENT_USER_INFO_MTR']['current_week']
     time_series_profile_info_2 = merged_data_by_table['TIME_SERIES_PROFILE_INFO']['current_week']
     by_user_id_media_dtl_info_2 = merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['current_week']
     by_date_media_agg_info_2 = merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['current_week']
@@ -40,7 +40,7 @@ def main():
     # -------- not_connected_user data -------
     
     # unique_user = recent_user_info_mtr['acnt_id'].unique()
-    nc_unique_user = recent_user_info_mtr_2[recent_user_info_mtr_2['connacnt_conn_yn']=='N']['acnt_id'].to_list()
+    nc_unique_user = recent_user_info_mtr_2[recent_user_info_mtr_2['acnt_conn_yn']=='N']['acnt_id'].to_list()
     
     nc_recent_user_info_mtr_2 = recent_user_info_mtr_2[recent_user_info_mtr_2['acnt_id'].isin(nc_unique_user)]
 

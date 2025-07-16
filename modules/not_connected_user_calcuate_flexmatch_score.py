@@ -97,11 +97,11 @@ def calculate_post_efficiency_df(media_engagement_profile_merged_df):
 
     return post_efficiency_df
 
-def not_connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_engagement_df, follower_loyalty_df, post_efficiency_df, recent_user_info_mtr):
+def not_connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_engagement_df, follower_loyalty_df, post_efficiency_df):
     # 크리에이터 활동성
     creator_activity_score = activity_df[['acnt_id', 'activity_score']]
     # 트렌드지수
-    creator_trend_score = growth_rate_df[['acnt_id', 'trend_score']]
+    creator_follow_growth_rate = growth_rate_df[['acnt_id', 'follow_growth_rate']]
     # 팔로워 참여도
     follower_engagement = follower_engagement_df[['acnt_id', 'follower_total_engagement']]
     # 팔로워 충성도
@@ -110,12 +110,12 @@ def not_connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, f
     post_efficiency = post_efficiency_df[['acnt_id', 'avg_post_efficiency']]
 
     # data_list
-    df_list = [creator_activity_score, creator_trend_score, follower_engagement, follower_loyalty, post_efficiency]
+    df_list = [creator_activity_score, creator_follow_growth_rate, follower_engagement, follower_loyalty, post_efficiency]
 
     flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='left'), df_list)
     user_info_nm = user_info[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
     flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
-    flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'trend_score', 'follower_total_engagement', 'follower_retention_rate', 'avg_post_efficiency']]
+    flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_total_engagement', 'follower_retention_rate', 'avg_post_efficiency']]
 
     not_connected_flexmatch_score_table = flexmatch_score.copy()
     not_connected_flexmatch_score_table.dropna(inplace=True)
