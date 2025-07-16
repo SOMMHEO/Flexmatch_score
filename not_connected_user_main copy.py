@@ -1,4 +1,4 @@
-from modules.DB_connection_and_Load_S3 import *
+from modules.DB_connection_and_Load_not_conn_S3_data import *
 from modules.data_preprocessing import *
 from modules.not_connected_user_calcuate_flexmatch_score import *
 

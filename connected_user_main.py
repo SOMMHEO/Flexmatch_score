@@ -1,4 +1,4 @@
-from modules.DB_connection_and_Load_S3 import *
+from modules.DB_connection_and_Load_conn_S3_data import *
 from modules.data_preprocessing import *
 from modules.connected_user_calcuate_flexmatch_score import *
 
@@ -75,7 +75,7 @@ def main():
     # c_by_date_media_agg_info_2 = by_date_media_agg_info_2[by_date_media_agg_info_2['media_id'].isin(unique_media)]
     c_conn_media_insight_2 = conn_media_insight_2[conn_media_insight_2['media_id'].isin(unique_media)]
         
-    user_info, timeseries, timeseries_2, user_followtype, user_followtype_2, media_info, media_agg, all_merged_df, media_engagement_merged_df, media_engagement_profile_merged_df, time_series_merged_df = create_merged_df(
+    user_info, timeseries, timeseries_2, user_followtype, user_followtype_2, media_info, media_agg, all_merged_df, media_engagement_merged_df, media_engagement_profile_merged_df, time_series_merged_df = conn_create_merged_df(
                                                                                                                         c_recent_user_info_mtr_2,
                                                                                                                         c_time_series_profile_info,
                                                                                                                         c_time_series_profile_info_2,
@@ -83,6 +83,9 @@ def main():
                                                                                                                         c_conn_media_insight_2,
                                                                                                                         c_conn_profile_insight_followtype,
                                                                                                                         c_conn_profile_insight_followtype_2)
+    
+    user_info.loc[:,'influencer_scale_type'] = user_info.apply(influencer_scale_type, axis=1)
+
     ## calculate flexmatch score - non_connected_user
     activity_df = calculate_activity_score(media_info)
     check_inf(activity_df)
@@ -102,7 +105,7 @@ def main():
     check_inf(post_popularity_df)
 
     ## create flexmatch score table by influencer scale type
-    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_engagment_df, follower_loyalty_df, post_efficiency_df)
+    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_engagment_df, follower_loyalty_df, post_efficiency_df, post_popularity_df)
     
     nano = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='nano']
     micro = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='micro']

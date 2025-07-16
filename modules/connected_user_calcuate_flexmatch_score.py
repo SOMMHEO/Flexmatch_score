@@ -45,8 +45,8 @@ def calculate_follower_growth_rate(time_series_df, recent_time_series_df):
     recent_time_series_df = recent_time_series_df[recent_time_series_df['acnt_id'].isin(influencer_list)]
     time_series_merged_df = pd.merge(time_series_df, recent_time_series_df, on='acnt_id')
 
-    time_series_merged_df['trend_score'] = ((time_series_merged_df['follower_cnt_y'] - time_series_merged_df['follower_cnt_x']) / (time_series_merged_df['follower_cnt_x'])) * 100
-    growth_rate_df = time_series_merged_df[['acnt_id', 'trend_score']]
+    time_series_merged_df['follow_growth_rate'] = ((time_series_merged_df['follower_cnt_y'] - time_series_merged_df['follower_cnt_x']) / (time_series_merged_df['follower_cnt_x'])) * 100
+    growth_rate_df = time_series_merged_df[['acnt_id', 'follow_growth_rate']]
 
     return growth_rate_df
 

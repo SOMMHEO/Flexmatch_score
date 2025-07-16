@@ -70,7 +70,7 @@ class SSHMySQLConnector:
                     if result:
                         data['member_uid'] = result['uid']
                         data['user_id'] = result['user_id']
-                        data['is_connected'] = result['add1_connected']
+                        # data['is_connected'] = result['add1_connected']
                         # 향후에 ig_user_id가 추가가 된다면, 해당 부분도 확인해서 추가할 수 있게
                         # data['ig_user_id'] = result['ig_user_id']
                     else:
@@ -184,72 +184,5 @@ def load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_fil
     
     return recent_weeks_data
 
-def conn_load_weekly_instagram_data(bucket_name, table_list, target_filename='merged_data.parquet'):
-    # 환경 변수 로딩
-    load_dotenv()
-    aws_access_key = os.getenv("aws_accessKey")
-    aws_secret_key = os.getenv("aws_secretKey")
-
-    client = boto3.client(
-        's3',
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key,
-        region_name='ap-northeast-2'
-    )
-
-    today = datetime.now()
-    yesterday = (today - timedelta(days=1))
-
-    today_date = datetime.now().strftime('%Y-%m-%d')
-    yesterday_date = yesterday.strftime('%Y-%m-%d')
-
-    # 결과 저장용 딕셔너리 초기화
-    merged_data_by_table = {table_name: {} for table_name in table_list}
-
-    # 주차별로 데이터 로딩
-    recent_dates = [yesterday_date, today_date]
-    recent_data_by_table = {}
-
-    for table_name in table_list:
-        recent_data_by_table[table_name] = {}
-
-        for date_str in recent_dates:
-            prefix = f'instagram-data/tables/{table_name}/{date_str}/'
-            response = client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-
-            if 'Contents' not in response:
-                print(f"[Info] No files found under prefix: {prefix}")
-                continue
-
-            target_files = [
-                content['Key']
-                for content in response['Contents']
-                if content['Key'].endswith(target_filename)
-            ]
-
-            if not target_files:
-                print(f"[Info] No {target_filename} found for {table_name} on date={date_str}")
-                continue
-
-            for file_key in target_files:
-                try:
-                    obj = client.get_object(Bucket=bucket_name, Key=file_key)
-                    df = pd.read_parquet(io.BytesIO(obj['Body'].read()))
-                    recent_data_by_table[table_name][date_str] = df
-                    print(f"[Success] Loaded {file_key} for table {table_name}, date={date_str}")
-                except Exception as e:
-                    print(f"[Error] Failed to read {file_key} for {table_name}, date={date_str}: {e}")
-
-    final_data = {}
-    for table_name, date_data in recent_data_by_table.items():
-        if today_date in date_data and yesterday_date in date_data:
-            final_data[table_name] = {
-                'yesterday': date_data[yesterday_date],
-                'today': date_data[today_date]
-            }
-        else:
-            print(f"[Warning] Missing yesterday or today data for table {table_name}")
-
-    return final_data
 
 
