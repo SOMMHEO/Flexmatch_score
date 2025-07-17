@@ -21,14 +21,28 @@ def create_merged_df(user_info_df, timeseries_df, timeseries_df_2, media_info_df
     media_engagement_merged_df = pd.merge(media_info_df, media_agg_df, on='media_id', how='outer')
     # print(len(media_engagement_merged_df['acnt_id'].unique()))
 
+    ## 방법 1
     # 단 한개의 게시물이라도 like가 비공개인 influencer 제거
-    by_user_na_like_count = media_engagement_merged_df[media_engagement_merged_df['like_cnt'].isna()].groupby(['acnt_id'])['media_id'].count()
-    na_like_user = by_user_na_like_count[by_user_na_like_count > 0].index
-    # print(len(na_like_user))
-    media_engagement_merged_df = media_engagement_merged_df[~media_engagement_merged_df['acnt_id'].isin(na_like_user)].reset_index()
+    # by_user_na_like_count = media_engagement_merged_df[media_engagement_merged_df['like_cnt'].isna()].groupby(['acnt_id'])['media_id'].count()
+    # na_like_user = by_user_na_like_count[by_user_na_like_count > 0].index
+    # media_engagement_merged_df = media_engagement_merged_df[~media_engagement_merged_df['acnt_id'].isin(na_like_user)].reset_index()
+
+    ## 방법 2
+    no_media_user = user_info_df[user_info_df['media_cnt'] == 0]['acnt_id'].to_list()
+    media_engagement_merged_df = media_engagement_merged_df[~media_engagement_merged_df['acnt_id'].isin(no_media_user)].reset_index()
+
+    media_engagement_merged_groupby_df = media_engagement_merged_df.groupby('acnt_id')[['like_cnt', 'cmnt_cnt']].mean()
+    media_engagement_merged_groupby_df = np.ceil(media_engagement_merged_groupby_df)
+    fillna_user = media_engagement_merged_groupby_df[media_engagement_merged_groupby_df['like_cnt'] > 1].index
+
+    media_engagement_merged_df = media_engagement_merged_df[media_engagement_merged_df['acnt_id'].isin(fillna_user)].reset_index()
+
+    engagement_cols = ['like_cnt', 'cmnt_cnt']
+    for col in engagement_cols:
+        media_engagement_merged_df[col] = media_engagement_merged_df.apply(
+        lambda row: media_engagement_merged_groupby_df.at[row['acnt_id'], col] if pd.isna(row[col]) else row[col], axis=1)
 
     user_list = media_engagement_merged_df['acnt_id'].unique()
-    # print(len(user_list))
     media_list = media_engagement_merged_df['media_id'].unique()
 
     # merge하면서 제거된 리스트가 있기 때문에, 해당 부분 다시 삭제 후에 새로운 merge 파일 생성
@@ -46,6 +60,8 @@ def create_merged_df(user_info_df, timeseries_df, timeseries_df_2, media_info_df
     time_series_merged_df = pd.merge(timeseries, timeseries_df_2, on='acnt_id')
 
     return user_info, timeseries, timeseries_2, media_info, media_agg, all_merged_df, media_engagement_merged_df, media_engagement_profile_merged_df, time_series_merged_df
+
+
 
 def conn_create_merged_df(user_info_df, timeseries_df, timeseries_df_2, media_info_df, media_insight_df, user_followtype_df, user_followtype_df_2): # media_agg, profile_insight X
     # merge 시에 같은 이름의 열이 두개여서 error 발생하기 때문에 insight에서는 삭제

@@ -92,8 +92,8 @@ def main():
 
     growth_rate_df = calculate_follower_growth_rate(timeseries, timeseries_2)
 
-    follower_engagment_df = calculate_follower_engagement(media_engagement_profile_merged_df)
-    check_inf(follower_engagment_df)
+    # follower_engagment_df = calculate_follower_engagement(media_engagement_profile_merged_df)
+    # check_inf(follower_engagment_df)
 
     follower_loyalty_df = calculate_follower_loyalty(time_series_merged_df)
     check_inf(follower_loyalty_df)
@@ -105,7 +105,7 @@ def main():
     check_inf(post_popularity_df)
 
     ## create flexmatch score table by influencer scale type
-    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_engagment_df, follower_loyalty_df, post_efficiency_df, post_popularity_df)
+    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df)
     
     nano = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='nano']
     micro = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='micro']

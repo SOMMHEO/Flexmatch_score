@@ -36,6 +36,16 @@ def main():
     by_user_id_media_dtl_info_2 = merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['current_week']
     by_date_media_agg_info_2 = merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['current_week']
 
+
+    # 혹시 몰라서 일단 한번 적용
+    recent_user_info_mtr['acnt_id'] = recent_user_info_mtr['acnt_id'].astype(str)
+    time_series_profile_info['acnt_id'] = time_series_profile_info['acnt_id'].astype(str)
+    recent_user_info_mtr_2['acnt_id'] = recent_user_info_mtr_2['acnt_id'].astype(str)
+    time_series_profile_info_2['acnt_id'] = time_series_profile_info_2['acnt_id'].astype(str)
+
+    by_user_id_media_dtl_info_2['acnt_id'] = by_user_id_media_dtl_info_2['acnt_id'].astype(str)
+    by_date_media_agg_info_2['media_id'] = by_date_media_agg_info_2['media_id'].astype(str)
+
     ## Data preprocessing
     # -------- not_connected_user data -------
     
@@ -71,8 +81,8 @@ def main():
 
     growth_rate_df = calculate_follower_growth_rate(nc_timeseries, nc_timeseries_2)
 
-    follower_engagment_df = calculate_follower_engagement(nc_media_engagement_profile_merged_df)
-    check_inf(follower_engagment_df)
+    # follower_engagment_df = calculate_follower_engagement(nc_media_engagement_profile_merged_df)
+    # check_inf(follower_engagment_df)
 
     follower_loyalty_df = calculate_follower_loyalty(nc_time_series_merged_df)
     check_inf(follower_loyalty_df)
@@ -81,7 +91,7 @@ def main():
     check_inf(post_efficiency_df)
 
     ## create flexmatch score table by influencer scale type
-    not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_engagment_df, follower_loyalty_df, post_efficiency_df)
+    not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df)
     
     nc_nano = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='nano']
     nc_micro = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='micro']
