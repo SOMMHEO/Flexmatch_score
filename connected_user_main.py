@@ -137,6 +137,8 @@ def main():
     for k, v in category_map.items():
         connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
     
+    connected_flexmatch_score_table = connected_flexmatch_score_table.drop_duplicates(subset=['acnt_id', 'acnt_nm'])
+    
     nano = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='nano']
     micro = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='micro']
     mid = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='mid']

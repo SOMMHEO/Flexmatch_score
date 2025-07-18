@@ -118,6 +118,8 @@ def main():
     for k, v in category_map.items():
         not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
     
+    not_connected_flexmatch_score_table = not_connected_flexmatch_score_table.drop_duplicates(subset=['acnt_id', 'acnt_nm'])
+    
     nc_nano = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='nano']
     nc_micro = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='micro']
     nc_mid = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='mid']
