@@ -19,6 +19,9 @@ client = boto3.client(
 )
 
 def main():
+    # DB data loading
+    sales_info, seller_info = get_all_infos()
+
     ## s3 data loading
     bucket_name = 'flexmatch-data'
     table_list = [
@@ -104,8 +107,35 @@ def main():
     post_popularity_df = calculate_post_popularity_df(media_engagement_profile_merged_df)
     check_inf(post_popularity_df)
 
+    # 광고효율성 계산할 때 필요
+    # db_merged_data = pd.merge(seller_info, sales_info, on='add1')
+    
+
     ## create flexmatch score table by influencer scale type
     connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df)
+    
+    conn_user = seller_info[(seller_info['ig_user_id'].notnull()) & (seller_info['ig_user_id'] != '')]
+    conn_user_interestcategory = conn_user[['ig_user_id', 'interestcategory']].rename({'ig_user_id' : 'acnt_id'}, axis=1)
+    connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_interestcategory, on='acnt_id')
+
+    connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].fillna('뷰티')
+    connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].apply(
+            lambda x: '뷰티' if pd.isna(x) or (isinstance(x, str) and x.strip() == '') else x)
+    
+    category_map = {
+            'BABY/KIDS': '베이비/키즈',
+            'BEAUTY': '뷰티',
+            'FASHION': '패션',
+            'FOOD': '푸드',
+            'HEALTHY': '헬시',
+            'HOME/LIVING': '홈/리빙',
+            'SERVICE': '서비스',
+            'SPORT': '스포츠',
+            'TEST 카테고리.. TEST': '뷰티'
+        }
+
+    for k, v in category_map.items():
+        connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
     
     nano = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='nano']
     micro = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='micro']
@@ -121,6 +151,9 @@ def main():
     normalized_df, normalized_all_dic = normalize_influencer_scores(influencer_scale_names, influencer_scale_df_list)
     
     ## DB Insert
+    ssh = SSHMySQLConnector()
+    ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json') 
+    ssh.connect(True)
     ssh.insert_query_with_lookup('op_mem_seller_score', list(normalized_all_dic.values()))
 
 

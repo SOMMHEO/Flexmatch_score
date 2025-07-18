@@ -8,6 +8,8 @@ import json
 from datetime import datetime, timedelta
 from sshtunnel import SSHTunnelForwarder
 
+from sshtunnel import SSHTunnelForwarder
+
 class SSHMySQLConnector:
     def __init__(self):
         self.ssh_host = None
@@ -32,7 +34,7 @@ class SSHMySQLConnector:
         except Exception as e:
             print("설정 JSON 로딩 실패:", e)
 
-    def connect(self):
+    def connect(self, insert=False):
         try:
             self.tunnel = SSHTunnelForwarder(
                 (self.ssh_host, 22),
@@ -41,18 +43,24 @@ class SSHMySQLConnector:
                 remote_bind_address=('127.0.0.1', 3306),
             )
             self.tunnel.start()
-            
-            self.connection = pymysql.connect(
-                host='127.0.0.1',
-                port=self.tunnel.local_bind_port,
-                user=self.db_username,
-                password=self.db_password,
-                db=self.db_name,
-                cursorclass=pymysql.cursors.DictCursor  # 이 줄 추가
-            )
+            # insert 여부에 따라 cursorclass 설정
+            connect_kwargs = {
+                'host': '127.0.0.1',
+                'port': self.tunnel.local_bind_port,
+                'user': self.db_username,
+                'password': self.db_password,
+                'db': self.db_name,
+            }
+            if insert:
+                connect_kwargs['cursorclass'] = pymysql.cursors.DictCursor
+            self.connection = pymysql.connect(**connect_kwargs)
             print("DB 접속 성공")
         except Exception as e:
             print("SSH 또는 DB 연결 실패:", e)
+
+    def execute_query(self, query):
+        # 쿼리 실행 후 데이터를 DataFrame으로 반환
+        return pd.read_sql_query(query, self.connection)
 
     def insert_query_with_lookup(self, table_name, data_list):
         try:
@@ -83,25 +91,60 @@ class SSHMySQLConnector:
                     columns = ', '.join(data.keys())
                     placeholders = ', '.join([f"%({k})s" for k in data.keys()])
                     insert_sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
-                    print(insert_sql)
+                    # print(insert_sql)
                     cursor.execute(insert_sql, data)
 
-                    print(f"inserted acnt_id: {data.get('acnt_id', 'N/A')}")
+                    print(f"✅ inserted acnt_id: {data.get('acnt_id', 'N/A')}")
 
             self.connection.commit()
         except Exception as e:
             self.connection.rollback()
             print("INSERT 실패:", e)
-
-    def get_all_infos():
-        
-        return 
     
     def close(self):
         if self.connection:
             self.connection.close()
         if self.tunnel:
             self.tunnel.stop()
+
+def sendQuery(query):
+        ssh = SSHMySQLConnector()
+        ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json')
+        ssh.connect()
+        results = ssh.execute_query(query)
+        # print(results)
+        # print(results.head())
+        ssh.close()
+
+        return results
+    
+def get_all_infos(): 
+
+    query_sales_info = """
+        SELECT o.uid, o.add1, s.*
+        FROM op_mem_seller_statistics s
+        JOIN (
+            SELECT member_uid, MAX(regdate) AS max_regdate
+            FROM op_mem_seller_statistics
+            GROUP BY member_uid
+        ) latest ON s.member_uid = latest.member_uid AND s.regdate = latest.max_regdate
+        JOIN op_member o ON o.uid = s.member_uid
+        JOIN S3_RECENT_USER_INFO_MTR u ON o.add1 = u.acnt_nm
+        ORDER BY s.uid DESC
+    """
+    sales_info = sendQuery(query_sales_info)
+
+    query_seller_info = """
+        SELECT
+        o.user_id, o.ig_user_id, o.add1, s.interestcategory
+        FROM op_member o
+        left join op_mem_seller s on o.user_id=s.user_id
+        where (o.ig_user_id != '' and o.ig_user_id is not null) or (o.add1 != '' and o.add1 is not null)
+    """
+    seller_info = sendQuery(query_seller_info)
+
+    return sales_info, seller_info
+
 
 
 def conn_load_weekly_instagram_data(bucket_name, table_list, target_filename='merged_data.parquet'):

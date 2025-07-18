@@ -144,6 +144,58 @@ def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follo
     return connected_flexmatch_score_table
 
 
+# def normalize_influencer_scores(
+#     influencer_scale_names, 
+#     influencer_scale_df_list, 
+#     reverse_columns=None, 
+#     log_columns=None, 
+#     feature_range=(1, 5)
+# ):
+#     if reverse_columns is None:
+#         reverse_columns = []
+#     if log_columns is None:
+#         log_columns = []
+
+#     normalized_df_dict = {}
+
+#     for name, df in zip(influencer_scale_names, influencer_scale_df_list):
+#         cleaned = df.copy()
+
+#         # 무한대 및 NaN 제거
+#         float_cols = cleaned.select_dtypes(include='float64').columns
+#         cleaned[float_cols] = cleaned[float_cols].replace([np.inf, -np.inf], np.nan)
+#         cleaned = cleaned.dropna(subset=float_cols)
+
+#         if cleaned.empty:
+#             continue
+
+#         norm_df = pd.DataFrame(index=cleaned.index)
+#         for col in float_cols:
+#             col_data = cleaned[col]
+#             if col in log_columns:
+#                 col_data = np.log1p(col_data)
+#             scaler = MinMaxScaler(feature_range=feature_range)
+#             norm_col = scaler.fit_transform(col_data.values.reshape(-1, 1))
+#             if col in reverse_columns:
+#                 norm_df[col] = feature_range[1] - norm_col.ravel()
+#             else:
+#                 norm_df[col] = norm_col.ravel()
+
+#         norm_df['acnt_id'] = cleaned['acnt_id'].values
+#         norm_df['acnt_nm'] = cleaned['acnt_nm'].values
+#         norm_df['influencer_scale_type'] = name
+
+#         normalized_df_dict[name] = norm_df
+
+#     normalized_all_df = pd.concat(normalized_df_dict.values(), ignore_index=True)
+#     normalized_all_dic = normalized_all_df.to_dict(orient='index')
+
+#     return normalized_all_df, normalized_all_dic
+
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+import pandas as pd
+
 def normalize_influencer_scores(
     influencer_scale_names, 
     influencer_scale_df_list, 
@@ -156,7 +208,7 @@ def normalize_influencer_scores(
     if log_columns is None:
         log_columns = []
 
-    normalized_df_dict = {}
+    normalized_df_list = []
 
     for name, df in zip(influencer_scale_names, influencer_scale_df_list):
         cleaned = df.copy()
@@ -169,26 +221,58 @@ def normalize_influencer_scores(
         if cleaned.empty:
             continue
 
-        norm_df = pd.DataFrame(index=cleaned.index)
-        for col in float_cols:
-            col_data = cleaned[col]
-            if col in log_columns:
-                col_data = np.log1p(col_data)
-            scaler = MinMaxScaler(feature_range=feature_range)
-            norm_col = scaler.fit_transform(col_data.values.reshape(-1, 1))
-            if col in reverse_columns:
-                norm_df[col] = feature_range[1] - norm_col.ravel()
+        # 관심 카테고리 첫 번째 값 추출
+        if 'interestcategory' in cleaned.columns:
+            cleaned['main_interest_category'] = cleaned['interestcategory'].apply(
+                lambda x: str(x).split('@')[0] if pd.notnull(x) else '뷰티'
+            )
+        else:
+            cleaned['main_interest_category'] = '뷰티'
+
+        # (관심카테고리, 스케일타입) 조합별 그룹화
+        cleaned['influencer_scale_type'] = name  # 확실히 넣어두기
+        grouped = cleaned.groupby(['main_interest_category', 'influencer_scale_type'])
+
+        for (category, scale_type), group in grouped:
+            norm_df = pd.DataFrame(index=group.index)
+
+            # 그룹 내 인원 수 체크
+            if len(group) == 1:
+                # 1명인 경우 모든 점수를 1.0으로 고정
+                for col in float_cols:
+                    norm_df.loc[group.index, col] = 3.0
             else:
-                norm_df[col] = norm_col.ravel()
+                # 여러명인 경우 정규화 진행
+                for col in float_cols:
+                    col_data = group[col]
+                    if col in log_columns:
+                        col_data = np.log1p(col_data)
 
-        norm_df['acnt_id'] = cleaned['acnt_id'].values
-        norm_df['acnt_nm'] = cleaned['acnt_nm'].values
-        norm_df['influencer_scale_type'] = name
+                    max_val = col_data.max()
+                    min_val = col_data.min()
 
-        normalized_df_dict[name] = norm_df
+                    if max_val == min_val:
+                        # 모든 값이 동일하면 1.0 고정
+                        norm_df.loc[group.index, col] = 3.0
+                    else:
+                        scaler = MinMaxScaler(feature_range=feature_range)
+                        norm_col = scaler.fit_transform(col_data.values.reshape(-1, 1))
+                        if col in reverse_columns:
+                            norm_df[col] = feature_range[1] - norm_col.ravel()
+                        else:
+                            norm_df[col] = norm_col.ravel()
 
-    normalized_all_df = pd.concat(normalized_df_dict.values(), ignore_index=True)
+            # 공통 컬럼 복사
+            norm_df['acnt_id'] = group['acnt_id'].values
+            norm_df['acnt_nm'] = group['acnt_nm'].values
+            norm_df['influencer_scale_type'] = scale_type
+            norm_df['main_interest_category'] = category
+
+            normalized_df_list.append(norm_df)
+
+    normalized_all_df = pd.concat(normalized_df_list, ignore_index=True)
     normalized_all_dic = normalized_all_df.to_dict(orient='index')
 
     return normalized_all_df, normalized_all_dic
+
 

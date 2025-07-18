@@ -3,10 +3,6 @@ from modules.data_preprocessing import *
 from modules.not_connected_user_calcuate_flexmatch_score import *
 
 
-ssh = SSHMySQLConnector()
-ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json') 
-ssh.connect()
-
 load_dotenv()
 aws_access_key = os.getenv("aws_accessKey")
 aws_secret_key = os.getenv("aws_secretKey")
@@ -19,6 +15,9 @@ client = boto3.client(
 )
 
 def main():
+    ## DB data loading
+    sales_info, seller_info = get_all_infos()
+
     ## s3 data loading
     bucket_name = 'flexmatch-data'
     table_list = ['RECENT_USER_INFO_MTR', 'TIME_SERIES_PROFILE_INFO', 'BY_USER_ID_MEDIA_DTL_INFO', 'BY_DATE_MEDIA_AGG_INFO']
@@ -93,6 +92,32 @@ def main():
     ## create flexmatch score table by influencer scale type
     not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df)
     
+    conn_list = seller_info[(seller_info['ig_user_id'].notnull()) & (seller_info['ig_user_id'] != '')]['ig_user_id'].to_list()
+    not_conn_user = seller_info[~seller_info['ig_user_id'].isin(conn_list)]
+    not_conn_user = not_conn_user[['add1', 'interestcategory']]
+
+    not_conn_user['acnt_nm'] = not_conn_user['add1'].apply(clean_acnt_nm)
+
+    not_connected_flexmatch_score_table = pd.merge(not_connected_flexmatch_score_table, not_conn_user, on='acnt_nm')
+    not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].fillna('뷰티')
+    not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].apply(
+            lambda x: '뷰티' if pd.isna(x) or (isinstance(x, str) and x.strip() == '') else x)
+    
+    category_map = {
+            'BABY/KIDS': '베이비/키즈',
+            'BEAUTY': '뷰티',
+            'FASHION': '패션',
+            'FOOD': '푸드',
+            'HEALTHY': '헬시',
+            'HOME/LIVING': '홈/리빙',
+            'SERVICE': '서비스',
+            'SPORT': '스포츠',
+            'TEST 카테고리.. TEST': '뷰티'
+        }
+
+    for k, v in category_map.items():
+        not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
+    
     nc_nano = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='nano']
     nc_micro = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='micro']
     nc_mid = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='mid']
@@ -100,13 +125,15 @@ def main():
     nc_mega = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='mega']
 
     # connected_user 추가
-
     influencer_scale_names=['nano', 'micro', 'mid', 'macro', 'mega']
     influencer_scale_df_list=[nc_nano, nc_micro, nc_mid, nc_macro, nc_mega] # 여기에 connected user도 같이 포함하면 한번에 업로드 되지 않을까 함
 
     normalized_df, normalized_all_dic = normalize_influencer_scores(influencer_scale_names, influencer_scale_df_list)
     
     ## DB Insert
+    ssh = SSHMySQLConnector()
+    ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json') 
+    ssh.connect(True)
     ssh.insert_query_with_lookup('op_mem_seller_score', list(normalized_all_dic.values()))
 
 

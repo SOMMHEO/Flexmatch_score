@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
 from functools import reduce
@@ -15,6 +16,17 @@ def check_inf(df):
 
     print(f"⚠️ inf / -inf 포함 행 개수: {len(invalid_rows)}개")
     # display(invalid_rows)
+
+def clean_acnt_nm(value):
+    if pd.isnull(value):
+        return None
+    
+    value = str(value)  # 혹시 모르니 문자열로 변환
+    match = re.search(r'instagram\.com/([^/]+)', value)
+    if match:
+        return match.group(1)
+    else:
+        return value.strip()
 
 def calculate_activity_score(recent_media_dtl_df): # 두 개의 테이블 중 가장 최근
     media_dtl_copy = recent_media_dtl_df.copy()
