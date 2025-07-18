@@ -192,10 +192,6 @@ def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follo
 
 #     return normalized_all_df, normalized_all_dic
 
-from sklearn.preprocessing import MinMaxScaler
-import numpy as np
-import pandas as pd
-
 def normalize_influencer_scores(
     influencer_scale_names, 
     influencer_scale_df_list, 
