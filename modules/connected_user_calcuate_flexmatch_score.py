@@ -71,25 +71,49 @@ def calculate_follower_growth_rate(time_series_df, recent_time_series_df):
 
 #     return follower_engagment_df
 
-def calculate_follower_loyalty(time_series_merged_df):
-    time_series_merged_df_copy = time_series_merged_df[['acnt_id', 'follower_cnt_x', 'follower_cnt_y']].copy()
+# def calculate_follower_loyalty(time_series_merged_df):
+#     time_series_merged_df_copy = time_series_merged_df[['acnt_id', 'follower_cnt_x', 'follower_cnt_y']].copy()
 
-    time_series_merged_df_copy.loc[:, 'follower_change'] = (time_series_merged_df_copy['follower_cnt_y'] - time_series_merged_df_copy['follower_cnt_x'])
+#     time_series_merged_df_copy.loc[:, 'follower_change'] = (time_series_merged_df_copy['follower_cnt_y'] - time_series_merged_df_copy['follower_cnt_x'])
 
-    def estimate_new_follower(row):
-        if row['follower_change'] < 0:
-            return 0
-        else:
-            return row['follower_change']
+#     def estimate_new_follower(row):
+#         if row['follower_change'] < 0:
+#             return 0
+#         else:
+#             return row['follower_change']
 
-    time_series_merged_df_copy.loc[:, 'new_follower'] = time_series_merged_df_copy.apply(estimate_new_follower, axis=1)
-    time_series_merged_df_copy.loc[:, 'unfollowed'] = time_series_merged_df_copy['follower_cnt_x'] + time_series_merged_df_copy['new_follower'] - time_series_merged_df_copy['follower_cnt_y']
-    time_series_merged_df_copy.loc[:, 'follower_retention_rate'] = ((time_series_merged_df_copy['follower_cnt_x'] - time_series_merged_df_copy['unfollowed']) / time_series_merged_df_copy['follower_cnt_x']) * 100
-    time_series_merged_df_copy.loc[:, 'follower_retention_rate'] = time_series_merged_df_copy['follower_retention_rate'].round(2)
+#     time_series_merged_df_copy.loc[:, 'new_follower'] = time_series_merged_df_copy.apply(estimate_new_follower, axis=1)
+#     time_series_merged_df_copy.loc[:, 'unfollowed'] = time_series_merged_df_copy['follower_cnt_x'] + time_series_merged_df_copy['new_follower'] - time_series_merged_df_copy['follower_cnt_y']
+#     time_series_merged_df_copy.loc[:, 'follower_retention_rate'] = ((time_series_merged_df_copy['follower_cnt_x'] - time_series_merged_df_copy['unfollowed']) / time_series_merged_df_copy['follower_cnt_x']) * 100
+#     time_series_merged_df_copy.loc[:, 'follower_retention_rate'] = time_series_merged_df_copy['follower_retention_rate'].round(2)
 
-    follower_loyalty_df = time_series_merged_df_copy
+#     follower_loyalty_df = time_series_merged_df_copy
 
-    return follower_loyalty_df
+#     return follower_loyalty_df
+
+def calculate_follower_loyalty(conn_profile_insight_followtype_2, timeseries_2):
+    follow_type_df = conn_profile_insight_followtype_2.pivot_table(
+        index=["acnt_id", "base_ymd", "acnt_nm"],  # 고유 식별자 기준으로 고정
+        columns="follow_type_nm",  # FOLLOWER / NON_FOLLOWER가 컬럼으로 올라감
+        values="follow_unfollow_cnt",  # 우리가 관심있는 값
+        fill_value=0  # 값이 없을 경우 0으로 채움
+    )
+
+    # preprocessing follow_type_df
+    follow_type_df.columns = [f"{col.lower()}_follow_unfollow_cnt" for col in follow_type_df.columns]
+    follow_type_df.rename(columns={'follower_follow_unfollow_cnt':'new_follower', 'non_follower_follow_unfollow_cnt':'unfollowed'}, inplace=True)
+    follow_type_df = follow_type_df.reset_index()
+    follow_type_df
+
+    timeseries_2_copy = timeseries_2[['acnt_id', 'follower_cnt']]
+    follow_type_df_copy = follow_type_df.copy()
+    follow_type_df_copy = pd.merge(follow_type_df, timeseries_2_copy, on='acnt_id', how='left')
+    follow_type_df_copy.dropna(inplace=True)
+
+    follow_type_df_copy['net_gain'] = follow_type_df_copy['new_follower'] - follow_type_df_copy['unfollowed']
+    follow_type_df_copy['follower_retention_rate'] = (follow_type_df_copy['net_gain'] / (follow_type_df_copy['follower_cnt'] + follow_type_df_copy['new_follower'])) * 100
+
+    return follow_type_df_copy
 
 def calculate_post_efficiency_df(media_engagement_profile_merged_df):
     media_engagement_profile_merged_df_copy = media_engagement_profile_merged_df.copy()
