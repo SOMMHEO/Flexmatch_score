@@ -35,7 +35,7 @@ def main():
     ]
 
     # connected_user & not_connected_user common table
-    merged_data_by_table = conn_load_weekly_instagram_data(bucket_name, table_list, target_filename='merged_data.parquet')
+    merged_data_by_table = load_last_weekly_instagram_data(bucket_name, table_list, target_filename='merged_data.parquet')
     
     recent_user_info_mtr = merged_data_by_table['CONN_v2_RECENT_USER_INFO_MTR']['yesterday']
     time_series_profile_info = merged_data_by_table['CONN_v2_TIME_SERIES_PROFILE_INFO']['yesterday']

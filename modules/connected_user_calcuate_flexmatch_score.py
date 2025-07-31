@@ -110,8 +110,9 @@ def calculate_follower_loyalty(conn_profile_insight_followtype_2, timeseries_2):
     follow_type_df_copy = pd.merge(follow_type_df, timeseries_2_copy, on='acnt_id', how='left')
     follow_type_df_copy.dropna(inplace=True)
 
+    follow_type_df_copy['unfollow_rate'] = (follow_type_df_copy['unfollowed'] / follow_type_df_copy['follower_cnt']) * 100 ## 이걸 기준으로 잡을 것 같으면 변수명을 변경
     follow_type_df_copy['net_gain'] = follow_type_df_copy['new_follower'] - follow_type_df_copy['unfollowed']
-    follow_type_df_copy['follower_retention_rate'] = (follow_type_df_copy['net_gain'] / (follow_type_df_copy['follower_cnt'] + follow_type_df_copy['new_follower'])) * 100
+    follow_type_df_copy['follower_retention_rate'] = (follow_type_df_copy['net_gain'] / (follow_type_df_copy['follower_cnt'])) * 100
 
     return follow_type_df_copy
 
