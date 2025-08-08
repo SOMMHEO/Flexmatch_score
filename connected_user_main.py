@@ -20,7 +20,7 @@ client = boto3.client(
 
 def main():
     # DB data loading
-    sales_info, seller_info = get_all_infos()
+    sales_info, seller_interest_info, conn_user_main_category_info = get_all_infos()
 
     ## s3 data loading
     bucket_name = 'flexmatch-data'
@@ -108,14 +108,16 @@ def main():
     check_inf(post_popularity_df)
 
     # 광고효율성 계산할 때 필요
-    # db_merged_data = pd.merge(seller_info, sales_info, on='add1')
+    # db_merged_data = pd.merge(seller_interest_info, sales_info, on='add1')
     
 
     ## create flexmatch score table by influencer scale type
     connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df)
     
-    conn_user = seller_info[(seller_info['ig_user_id'].notnull()) & (seller_info['ig_user_id'] != '')]
+    conn_user = seller_interest_info[(seller_interest_info['ig_user_id'].notnull()) & (seller_interest_info['ig_user_id'] != '')]
     conn_user_interestcategory = conn_user[['ig_user_id', 'interestcategory']].rename({'ig_user_id' : 'acnt_id'}, axis=1)
+    
+    # interest category 
     connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_interestcategory, on='acnt_id')
 
     connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].fillna('뷰티')
@@ -136,7 +138,12 @@ def main():
 
     for k, v in category_map.items():
         connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
+
+    # score table에 main category merge
+    conn_user_main_category_info = conn_user_main_category_info[['acnt_id', 'acnt_nm', 'main_category', 'top_3_category']]
+    connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_main_category_info, on='acnt_id')
     
+    # final preprocessing after table merge    
     connected_flexmatch_score_table = connected_flexmatch_score_table.drop_duplicates(subset=['acnt_id', 'acnt_nm'])
     
     nano = connected_flexmatch_score_table[connected_flexmatch_score_table['influencer_scale_type']=='nano']

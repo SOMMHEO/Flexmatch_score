@@ -16,7 +16,7 @@ client = boto3.client(
 
 def main():
     ## DB data loading
-    sales_info, seller_info = get_all_infos()
+    sales_info, seller_interest_info, not_conn_user_main_category_info = get_all_infos()
 
     ## s3 data loading
     bucket_name = 'flexmatch-data'
@@ -92,12 +92,13 @@ def main():
     ## create flexmatch score table by influencer scale type
     not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df)
     
-    conn_list = seller_info[(seller_info['ig_user_id'].notnull()) & (seller_info['ig_user_id'] != '')]['ig_user_id'].to_list()
-    not_conn_user = seller_info[~seller_info['ig_user_id'].isin(conn_list)]
+    conn_list = seller_interest_info[(seller_interest_info['ig_user_id'].notnull()) & (seller_interest_info['ig_user_id'] != '')]['ig_user_id'].to_list()
+    not_conn_user = seller_interest_info[~seller_interest_info['ig_user_id'].isin(conn_list)]
     not_conn_user = not_conn_user[['add1', 'interestcategory']]
 
     not_conn_user['acnt_nm'] = not_conn_user['add1'].apply(clean_acnt_nm)
 
+    # score table에 interest category merge
     not_connected_flexmatch_score_table = pd.merge(not_connected_flexmatch_score_table, not_conn_user, on='acnt_nm')
     not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].fillna('뷰티')
     not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].apply(
@@ -117,7 +118,14 @@ def main():
 
     for k, v in category_map.items():
         not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
-    
+
+    # score table에 main category merge
+    not_conn_user_main_category_info = not_conn_user_main_category_info[~not_conn_user_main_category_info['ig_user_id'].isin(conn_list)]
+    not_conn_user_main_category_info = not_conn_user_main_category_info[['acnt_id', 'acn_nm', 'main_category', 'top_3_category']]
+
+    not_connected_flexmatch_score_table = pd.merge(not_connected_flexmatch_score_table, not_conn_user_main_category_info, on='acnt_id') 
+
+    # final preprocessing after table merge
     not_connected_flexmatch_score_table = not_connected_flexmatch_score_table.drop_duplicates(subset=['acnt_id', 'acnt_nm'])
     
     nc_nano = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='nano']

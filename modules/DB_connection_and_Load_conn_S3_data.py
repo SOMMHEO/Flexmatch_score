@@ -134,16 +134,30 @@ def get_all_infos():
     """
     sales_info = sendQuery(query_sales_info)
 
-    query_seller_info = """
+    # insterest category 
+    query_seller_interest_info = """
         SELECT
         o.user_id, o.ig_user_id, o.add1, s.interestcategory
         FROM op_member o
-        left join op_mem_seller s on o.user_id=s.user_id
+        left join op_mem_seller s
+        on o.user_id=s.user_id
         where (o.ig_user_id != '' and o.ig_user_id is not null) or (o.add1 != '' and o.add1 is not null)
     """
-    seller_info = sendQuery(query_seller_info)
+    seller_interest_info = sendQuery(query_seller_interest_info)
 
-    return sales_info, seller_info
+    # creator main category
+    query_conn_user_main_category_info = """
+        SELECT
+        o.user_id, o.ig_user_id, o.add1, s.main_category, s.top_3_category
+        FROM op_member o
+        left join INSTAGRAM_USER_CATEGORY_LABELING s
+        on o.ig_user_id=s.acnt_id
+        where (o.ig_user_id != '' and o.ig_user_id is not null) or (o.add1 != '' and o.add1 is not null)
+    """
+
+    conn_user_main_category_info = sendQuery(query_conn_user_main_category_info)
+
+    return sales_info, seller_interest_info, conn_user_main_category_info
 
 
 ### 실행 시점으로 부터 어제, 오늘 데이터 가져오는 함수

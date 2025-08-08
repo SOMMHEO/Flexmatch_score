@@ -135,16 +135,27 @@ def get_all_infos():
     """
     sales_info = sendQuery(query_sales_info)
 
-    query_seller_info = """
+    query_seller_interest_info = """
         SELECT
         o.user_id, o.ig_user_id, o.add1, s.interestcategory
         FROM op_member o
         left join op_mem_seller s on o.user_id=s.user_id
         where (o.ig_user_id != '' and o.ig_user_id is not null) or (o.add1 != '' and o.add1 is not null)
     """
-    seller_info = sendQuery(query_seller_info)
+    seller_interest_info = sendQuery(query_seller_interest_info)
 
-    return sales_info, seller_info
+    query_not_conn_user_main_category_info = """
+        SELECT
+        o.user_id, s.acnt_id, s.acnt_nm, s.main_category, s.top_3_category
+        FROM op_member o
+        left join INSTAGRAM_USER_CATEGORY_LABELING s
+        on o.add1=s.acnt_nm
+        where (o.add1 != '' and o.add1 is not null)
+    """
+
+    not_conn_user_main_category_info = sendQuery(query_not_conn_user_main_category_info)
+
+    return sales_info, seller_interest_info, not_conn_user_main_category_info
 
 
 def load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_filename='merged_data.parquet'):
