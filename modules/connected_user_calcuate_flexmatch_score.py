@@ -139,7 +139,20 @@ def calculate_post_popularity_df(media_engagement_profile_merged_df):
 
     return post_popularity_df
 
-def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df):
+def calculate_ad_efficiency(conn_user_main_category_info, sales_info, post_efficiency_df):
+    conn_user_main_category_info['add1'] = conn_user_main_category_info['acnt_nm']
+    db_merged_data = pd.merge(sales_info, conn_user_main_category_info, on='add1')
+    db_merged_data = db_merged_data[['uid', 'user_id', 'member_uid', 'add1', 'acnt_id', 'acnt_nm', 'storeid', 'total_visit', 'total_order', 'match_total_price']]
+
+    db_merged_data['acnt_id'] = db_merged_data['acnt_id'].astype(str)
+    db_merged_data_2 = pd.merge(db_merged_data, post_efficiency_df, on='acnt_id', how='left')
+
+    db_merged_data_3= db_merged_data_2[(db_merged_data_2['total_order']!=0) & (db_merged_data_2['match_total_price']!=0)].dropna()
+    db_merged_data_3['ad_efficiency'] = db_merged_data_3['total_order'] / db_merged_data_3['avg_post_efficiency']
+    
+    return db_merged_data_3
+
+def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df):
     # 크리에이터 활동성
     creator_activity_score = activity_df[['acnt_id', 'activity_score']]
     # 트렌드지수 (팔로워 순변화량)
@@ -152,16 +165,18 @@ def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follo
     post_efficiency = post_efficiency_df[['acnt_id', 'avg_post_efficiency']]
     # 콘텐츠 인기도
     post_popularity = post_popularity_df[['acnt_id', 'avg_post_popularity']]
+    # 광고효율성
+    ad_efficiency = ad_efficiency_df[['acnt_id', 'ad_efficiency']]
 
     # data_list
-    df_list = [creator_activity_score, creator_follow_growth_rate, follower_loyalty, post_efficiency, post_popularity]
+    df_list = [creator_activity_score, creator_follow_growth_rate, follower_loyalty, post_efficiency, post_popularity, ad_efficiency]
 
     from functools import reduce
 
     flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='left'), df_list)
     user_info_nm = user_info[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
     flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
-    flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_retention_rate', 'avg_post_efficiency', 'avg_post_popularity']]
+    flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_retention_rate', 'avg_post_efficiency', 'avg_post_popularity', 'ad_efficiency']]
 
     connected_flexmatch_score_table = flexmatch_score.copy()
     connected_flexmatch_score_table.dropna(inplace=True)

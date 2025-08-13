@@ -154,7 +154,7 @@ def get_all_infos():
     # """
 
     query_not_conn_user_main_category_info = """
-        SELECT acnt_id, acnt_nm, main_category, top_3_category, is_connected
+        SELECT user_id, acnt_id, acnt_nm, main_category, top_3_category, is_connected
         FROM INSTAGRAM_USER_CATEGORY_LABELING
     """
 

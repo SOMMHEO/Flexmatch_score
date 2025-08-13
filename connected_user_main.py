@@ -107,12 +107,11 @@ def main():
     post_popularity_df = calculate_post_popularity_df(media_engagement_profile_merged_df)
     check_inf(post_popularity_df)
 
-    # 광고효율성 계산할 때 필요
-    # db_merged_data = pd.merge(seller_interest_info, sales_info, on='add1')
-    
+    ad_efficiency_df = calculate_ad_efficiency(conn_user_main_category_info, sales_info)
+    check_inf(ad_efficiency_df)
 
     ## create flexmatch score table by influencer scale type
-    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df)
+    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df)
     
     conn_user = seller_interest_info[(seller_interest_info['ig_user_id'].notnull()) & (seller_interest_info['ig_user_id'] != '')]
     conn_user_interestcategory = conn_user[['ig_user_id', 'interestcategory']].rename({'ig_user_id' : 'acnt_id'}, axis=1)
