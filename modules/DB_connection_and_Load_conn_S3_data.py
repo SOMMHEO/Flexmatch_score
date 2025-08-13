@@ -146,13 +146,18 @@ def get_all_infos():
     seller_interest_info = sendQuery(query_seller_interest_info)
 
     # creator main category
+    # query_conn_user_main_category_info = """
+    #     SELECT
+    #     o.user_id, o.ig_user_id, o.add1, s.main_category, s.top_3_category
+    #     FROM op_member o
+    #     left join INSTAGRAM_USER_CATEGORY_LABELING s
+    #     on o.ig_user_id=s.acnt_id
+    #     where (o.ig_user_id != '' and o.ig_user_id is not null) or (o.add1 != '' and o.add1 is not null)
+    # """
+
     query_conn_user_main_category_info = """
-        SELECT
-        o.user_id, o.ig_user_id, o.add1, s.main_category, s.top_3_category
-        FROM op_member o
-        left join INSTAGRAM_USER_CATEGORY_LABELING s
-        on o.ig_user_id=s.acnt_id
-        where (o.ig_user_id != '' and o.ig_user_id is not null) or (o.add1 != '' and o.add1 is not null)
+        SELECT acnt_id, acnt_nm, main_category, top_3_category, is_connected
+        FROM INSTAGRAM_USER_CATEGORY_LABELING
     """
 
     conn_user_main_category_info = sendQuery(query_conn_user_main_category_info)

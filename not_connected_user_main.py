@@ -21,6 +21,7 @@ def main():
     ## s3 data loading
     bucket_name = 'flexmatch-data'
     table_list = ['RECENT_USER_INFO_MTR', 'TIME_SERIES_PROFILE_INFO', 'BY_USER_ID_MEDIA_DTL_INFO', 'BY_DATE_MEDIA_AGG_INFO']
+    # table_list = ['EXTERNAL_RECENT_USER_INFO_MTR', 'EXTERNAL_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_BY_DATE_MEDIA_AGG_INFO']
 
     # connected_user & not_connected_user common table
     merged_data_by_table = load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_filename='merged_data.parquet')
@@ -34,6 +35,16 @@ def main():
     time_series_profile_info_2 = merged_data_by_table['TIME_SERIES_PROFILE_INFO']['current_week']
     by_user_id_media_dtl_info_2 = merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['current_week']
     by_date_media_agg_info_2 = merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['current_week']
+
+    # recent_user_info_mtr = merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
+    # time_series_profile_info = merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
+    # by_user_id_media_dtl_info = merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['prev_week']
+    # by_date_media_agg_info = merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['prev_week']
+
+    # recent_user_info_mtr_2 = merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
+    # time_series_profile_info_2 = merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
+    # by_user_id_media_dtl_info_2 = merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
+    # by_date_media_agg_info_2 = merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
 
 
     # 혹시 몰라서 일단 한번 적용
@@ -98,7 +109,8 @@ def main():
 
     not_conn_user['acnt_nm'] = not_conn_user['add1'].apply(clean_acnt_nm)
 
-    # score table에 interest category merge
+    ## score table에 interest category merge
+    # external의 경우 해당 부분은 제외
     not_connected_flexmatch_score_table = pd.merge(not_connected_flexmatch_score_table, not_conn_user, on='acnt_nm')
     not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].fillna('뷰티')
     not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].apply(
@@ -119,20 +131,24 @@ def main():
     for k, v in category_map.items():
         not_connected_flexmatch_score_table['interestcategory'] = not_connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
 
-    # score table에 main category merge
-    not_conn_user_main_category_info = not_conn_user_main_category_info[~not_conn_user_main_category_info['ig_user_id'].isin(conn_list)]
-    not_conn_user_main_category_info = not_conn_user_main_category_info[['acnt_id', 'acn_nm', 'main_category', 'top_3_category']]
+    print(not_connected_flexmatch_score_table['acnt_id'].nunique())
 
-    not_connected_flexmatch_score_table = pd.merge(not_connected_flexmatch_score_table, not_conn_user_main_category_info, on='acnt_id') 
+    # score table에 main category merge
+    not_conn_user_main_category_info = not_conn_user_main_category_info[~not_conn_user_main_category_info['acnt_id'].isin(conn_list)]
+    not_conn_user_main_category_info = not_conn_user_main_category_info[['acnt_id', 'main_category', 'top_3_category']]
+    not_conn_user_main_category_info['acnt_id'] = not_conn_user_main_category_info['acnt_id'].astype(str)
+
+    not_connected_flexmatch_score_table_2 = pd.merge(not_connected_flexmatch_score_table, not_conn_user_main_category_info, on='acnt_id', how='left')
+    print(not_connected_flexmatch_score_table_2['acnt_id'].nunique())
 
     # final preprocessing after table merge
-    not_connected_flexmatch_score_table = not_connected_flexmatch_score_table.drop_duplicates(subset=['acnt_id', 'acnt_nm'])
+    not_connected_flexmatch_score_table_2 = not_connected_flexmatch_score_table_2.drop_duplicates(subset=['acnt_id', 'acnt_nm'])
     
-    nc_nano = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='nano']
-    nc_micro = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='micro']
-    nc_mid = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='mid']
-    nc_macro = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='macro']
-    nc_mega = not_connected_flexmatch_score_table[not_connected_flexmatch_score_table['influencer_scale_type']=='mega']
+    nc_nano = not_connected_flexmatch_score_table_2[not_connected_flexmatch_score_table_2['influencer_scale_type']=='nano']
+    nc_micro = not_connected_flexmatch_score_table_2[not_connected_flexmatch_score_table_2['influencer_scale_type']=='micro']
+    nc_mid = not_connected_flexmatch_score_table_2[not_connected_flexmatch_score_table_2['influencer_scale_type']=='mid']
+    nc_macro = not_connected_flexmatch_score_table_2[not_connected_flexmatch_score_table_2['influencer_scale_type']=='macro']
+    nc_mega = not_connected_flexmatch_score_table_2[not_connected_flexmatch_score_table_2['influencer_scale_type']=='mega']
 
     # connected_user 추가
     influencer_scale_names=['nano', 'micro', 'mid', 'macro', 'mega']

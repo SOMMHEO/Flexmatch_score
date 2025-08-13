@@ -98,7 +98,7 @@ def main():
     # follower_engagment_df = calculate_follower_engagement(media_engagement_profile_merged_df)
     # check_inf(follower_engagment_df)
 
-    follower_loyalty_df = calculate_follower_loyalty(time_series_merged_df)
+    follower_loyalty_df = calculate_follower_loyalty(conn_profile_insight_followtype_2, timeseries_2)
     check_inf(follower_loyalty_df)
 
     post_efficiency_df = calculate_post_efficiency_df(media_engagement_profile_merged_df)
@@ -118,7 +118,7 @@ def main():
     conn_user_interestcategory = conn_user[['ig_user_id', 'interestcategory']].rename({'ig_user_id' : 'acnt_id'}, axis=1)
     
     # interest category 
-    connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_interestcategory, on='acnt_id')
+    connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_interestcategory, on='acnt_id', how='left')
 
     connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].fillna('뷰티')
     connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].apply(
@@ -140,8 +140,9 @@ def main():
         connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].str.replace(k, v)
 
     # score table에 main category merge
-    conn_user_main_category_info = conn_user_main_category_info[['acnt_id', 'acnt_nm', 'main_category', 'top_3_category']]
-    connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_main_category_info, on='acnt_id')
+    conn_user_main_category_info = conn_user_main_category_info[['acnt_id', 'main_category', 'top_3_category']]
+    conn_user_main_category_info['acnt_id'] = conn_user_main_category_info['acnt_id'].astype(str)
+    connected_flexmatch_score_table = pd.merge(connected_flexmatch_score_table, conn_user_main_category_info, on='acnt_id', how='left')
     
     # final preprocessing after table merge    
     connected_flexmatch_score_table = connected_flexmatch_score_table.drop_duplicates(subset=['acnt_id', 'acnt_nm'])

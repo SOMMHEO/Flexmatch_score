@@ -172,7 +172,7 @@ def normalize_influencer_scores(
 
         # (관심카테고리, 스케일타입) 조합별 그룹화
         cleaned['influencer_scale_type'] = name  # 확실히 넣어두기
-        grouped = cleaned.groupby(['main_interest_category', 'influencer_scale_type'])
+        grouped = cleaned.groupby(['main_category', 'influencer_scale_type'])
 
         for (category, scale_type), group in grouped:
             norm_df = pd.DataFrame(index=group.index)
@@ -207,8 +207,10 @@ def normalize_influencer_scores(
             norm_df['acnt_id'] = group['acnt_id'].values
             norm_df['acnt_nm'] = group['acnt_nm'].values
             norm_df['influencer_scale_type'] = scale_type
-            norm_df['main_interest_category'] = category
-
+            norm_df['main_interest_category'] = group['main_interest_category'].values
+            norm_df['main_category'] = category
+            norm_df['top_3_category'] = group['top_3_category'].values
+            
             normalized_df_list.append(norm_df)
 
     normalized_all_df = pd.concat(normalized_df_list, ignore_index=True)

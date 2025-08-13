@@ -144,13 +144,18 @@ def get_all_infos():
     """
     seller_interest_info = sendQuery(query_seller_interest_info)
 
+    # query_not_conn_user_main_category_info = """
+    #     SELECT
+    #     o.user_id, s.acnt_id, s.acnt_nm, s.main_category, s.top_3_category
+    #     FROM op_member o
+    #     left join INSTAGRAM_USER_CATEGORY_LABELING s
+    #     on o.add1=s.acnt_nm
+    #     where (o.add1 != '' and o.add1 is not null)
+    # """
+
     query_not_conn_user_main_category_info = """
-        SELECT
-        o.user_id, s.acnt_id, s.acnt_nm, s.main_category, s.top_3_category
-        FROM op_member o
-        left join INSTAGRAM_USER_CATEGORY_LABELING s
-        on o.add1=s.acnt_nm
-        where (o.add1 != '' and o.add1 is not null)
+        SELECT acnt_id, acnt_nm, main_category, top_3_category, is_connected
+        FROM INSTAGRAM_USER_CATEGORY_LABELING
     """
 
     not_conn_user_main_category_info = sendQuery(query_not_conn_user_main_category_info)
