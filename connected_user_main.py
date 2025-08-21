@@ -133,7 +133,7 @@ def main():
             'HOME/LIVING': '홈/리빙',
             'SERVICE': '서비스',
             'SPORT': '스포츠',
-            'TEST 카테고리.. TEST': '뷰티'
+            'TEST 카테고리.. TEST': '뷰티'  
         }
 
     for k, v in category_map.items():
