@@ -124,7 +124,7 @@ def main():
     connected_flexmatch_score_table['interestcategory'] = connected_flexmatch_score_table['interestcategory'].apply(
             lambda x: '뷰티' if pd.isna(x) or (isinstance(x, str) and x.strip() == '') else x)
     
-    category_map = {
+    category_map = {  
             'BABY/KIDS': '베이비/키즈',
             'BEAUTY': '뷰티',
             'FASHION': '패션',
