@@ -20,58 +20,89 @@ def main():
 
     ## s3 data loading
     bucket_name = 'flexmatch-data'
-    table_list = ['RECENT_USER_INFO_MTR', 'TIME_SERIES_PROFILE_INFO', 'BY_USER_ID_MEDIA_DTL_INFO', 'BY_DATE_MEDIA_AGG_INFO']
-    # table_list = ['EXTERNAL_RECENT_USER_INFO_MTR', 'EXTERNAL_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_BY_DATE_MEDIA_AGG_INFO']
+    inner_table_list = ['RECENT_USER_INFO_MTR', 'TIME_SERIES_PROFILE_INFO', 'BY_USER_ID_MEDIA_DTL_INFO', 'BY_DATE_MEDIA_AGG_INFO']
+    external_table_list = ['EXTERNAL_RECENT_USER_INFO_MTR', 'EXTERNAL_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_BY_DATE_MEDIA_AGG_INFO']
+    # external_table_list_2 = ['EXTERNAL_2_RECENT_USER_INFO_MTR', 'EXTERNAL_2_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_2_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_2_BY_DATE_MEDIA_AGG_INFO']
 
     # connected_user & not_connected_user common table
-    merged_data_by_table = load_weekly_instagram_data(bucket_name, table_list, weeks_back=2, target_filename='merged_data.parquet')
+    inner_merged_data_by_table = load_weekly_instagram_data(bucket_name, inner_table_list, weeks_back=2, target_filename='merged_data.parquet')
+    external_merged_data_by_table = load_weekly_instagram_data(bucket_name, external_table_list, weeks_back=2, target_filename='merged_data.parquet')
+    # external_merged_data_by_table_2 = load_weekly_instagram_data(bucket_name, external_table_list_2, weeks_back=2, target_filename='merged_data.parquet')
     
-    recent_user_info_mtr = merged_data_by_table['RECENT_USER_INFO_MTR']['prev_week']
-    time_series_profile_info = merged_data_by_table['TIME_SERIES_PROFILE_INFO']['prev_week']
-    by_user_id_media_dtl_info = merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['prev_week']
-    by_date_media_agg_info = merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['prev_week']
+    # Create lists of dataframes to concatenate for prev_week
+    prev_week_recent_user_info_mtr_list = [
+        inner_merged_data_by_table['RECENT_USER_INFO_MTR']['prev_week'],
+        external_merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
+        # external_merged_data_by_table_2['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
+    ]
 
-    recent_user_info_mtr_2 = merged_data_by_table['RECENT_USER_INFO_MTR']['current_week']
-    time_series_profile_info_2 = merged_data_by_table['TIME_SERIES_PROFILE_INFO']['current_week']
-    by_user_id_media_dtl_info_2 = merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['current_week']
-    by_date_media_agg_info_2 = merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['current_week']
+    prev_week_time_series_profile_info_list = [
+        inner_merged_data_by_table['TIME_SERIES_PROFILE_INFO']['prev_week'],
+        external_merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
+        # external_merged_data_by_table_2['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
+    ]
 
-    # recent_user_info_mtr = merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
-    # time_series_profile_info = merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
-    # by_user_id_media_dtl_info = merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['prev_week']
-    # by_date_media_agg_info = merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['prev_week']
+    # Concatenate the dataframes for each list
+    prev_week_recent_user_info_mtr = pd.concat(prev_week_recent_user_info_mtr_list, ignore_index=True)
+    prev_week_time_series_profile_info = pd.concat(prev_week_time_series_profile_info_list, ignore_index=True)
 
-    # recent_user_info_mtr_2 = merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
-    # time_series_profile_info_2 = merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
-    # by_user_id_media_dtl_info_2 = merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
-    # by_date_media_agg_info_2 = merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
+    # Create lists of dataframes to concatenate for current_week
+    current_week_recent_user_info_mtr_list = [
+        inner_merged_data_by_table['RECENT_USER_INFO_MTR']['current_week'],
+        external_merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
+        # external_merged_data_by_table_2['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
+    ]
 
+    current_week_time_series_profile_info_list = [
+        inner_merged_data_by_table['TIME_SERIES_PROFILE_INFO']['current_week'],
+        external_merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
+        # external_merged_data_by_table_2['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
+    ]
+
+    current_week_by_user_id_media_dtl_info_list = [
+        inner_merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['current_week'],
+        external_merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
+        # external_merged_data_by_table_2['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
+    ]
+
+    current_week_by_date_media_agg_info_list = [
+        inner_merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['current_week'],
+        external_merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
+        # external_merged_data_by_table_2['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
+    ]
+
+    # Concatenate the dataframes for each list
+    current_week_recent_user_info_mtr = pd.concat(current_week_recent_user_info_mtr_list, ignore_index=True)
+    current_week_time_series_profile_info = pd.concat(current_week_time_series_profile_info_list, ignore_index=True)
+    current_week_by_user_id_media_dtl_info = pd.concat(current_week_by_user_id_media_dtl_info_list, ignore_index=True)
+    current_week_by_date_media_agg_info = pd.concat(current_week_by_date_media_agg_info_list, ignore_index=True)
 
     # 혹시 몰라서 일단 한번 적용
-    recent_user_info_mtr['acnt_id'] = recent_user_info_mtr['acnt_id'].astype(str)
-    time_series_profile_info['acnt_id'] = time_series_profile_info['acnt_id'].astype(str)
-    recent_user_info_mtr_2['acnt_id'] = recent_user_info_mtr_2['acnt_id'].astype(str)
-    time_series_profile_info_2['acnt_id'] = time_series_profile_info_2['acnt_id'].astype(str)
+    prev_week_recent_user_info_mtr['acnt_id'] = prev_week_recent_user_info_mtr['acnt_id'].astype(str)
+    prev_week_time_series_profile_info['acnt_id'] = prev_week_time_series_profile_info['acnt_id'].astype(str)
+    
+    current_week_recent_user_info_mtr['acnt_id'] = current_week_recent_user_info_mtr['acnt_id'].astype(str)
+    current_week_time_series_profile_info['acnt_id'] = current_week_time_series_profile_info['acnt_id'].astype(str)
 
-    by_user_id_media_dtl_info_2['acnt_id'] = by_user_id_media_dtl_info_2['acnt_id'].astype(str)
-    by_date_media_agg_info_2['media_id'] = by_date_media_agg_info_2['media_id'].astype(str)
+    current_week_by_user_id_media_dtl_info['acnt_id'] = current_week_by_user_id_media_dtl_info['acnt_id'].astype(str)
+    current_week_by_date_media_agg_info['media_id'] = current_week_by_date_media_agg_info['media_id'].astype(str)
 
     ## Data preprocessing
     # -------- not_connected_user data -------
     
     # unique_user = recent_user_info_mtr['acnt_id'].unique()
-    nc_unique_user = recent_user_info_mtr_2[recent_user_info_mtr_2['acnt_conn_yn']=='N']['acnt_id'].to_list()
+    nc_unique_user = prev_week_recent_user_info_mtr[prev_week_recent_user_info_mtr['acnt_conn_yn']=='N']['acnt_id'].to_list()
     
-    nc_recent_user_info_mtr_2 = recent_user_info_mtr_2[recent_user_info_mtr_2['acnt_id'].isin(nc_unique_user)]
+    nc_recent_user_info_mtr_2 = prev_week_recent_user_info_mtr[prev_week_recent_user_info_mtr['acnt_id'].isin(nc_unique_user)]
 
-    nc_time_series_profile_info = time_series_profile_info[time_series_profile_info['acnt_id'].isin(nc_unique_user)]
-    nc_time_series_profile_info_2 = time_series_profile_info_2[time_series_profile_info_2['acnt_id'].isin(nc_unique_user)]
+    nc_time_series_profile_info = prev_week_time_series_profile_info[prev_week_time_series_profile_info['acnt_id'].isin(nc_unique_user)]
+    nc_time_series_profile_info_2 = current_week_time_series_profile_info[current_week_time_series_profile_info['acnt_id'].isin(nc_unique_user)]
     
     # nc_by_user_id_media_dtl_info = by_user_id_media_dtl_info[by_user_id_media_dtl_info['acnt_id'].isin(nc_unique_user)]
-    nc_by_user_id_media_dtl_info_2 = by_user_id_media_dtl_info_2[by_user_id_media_dtl_info_2['acnt_id'].isin(nc_unique_user)]
+    nc_by_user_id_media_dtl_info_2 = current_week_by_user_id_media_dtl_info[current_week_by_user_id_media_dtl_info['acnt_id'].isin(nc_unique_user)]
 
     nc_unique_media = nc_by_user_id_media_dtl_info_2['media_id'].unique()
-    nc_by_date_media_agg_info_2 = by_date_media_agg_info_2[by_date_media_agg_info_2['media_id'].isin(nc_unique_media)]
+    nc_by_date_media_agg_info_2 = current_week_by_date_media_agg_info[current_week_by_date_media_agg_info['media_id'].isin(nc_unique_media)]
 
     # influencer scale type
     # nc_recent_user_info_mtr.loc[:, 'influencer_scale_type'] = nc_recent_user_info_mtr.apply(influencer_scale_type, axis=1)
@@ -91,9 +122,6 @@ def main():
 
     growth_rate_df = calculate_follower_growth_rate(nc_timeseries, nc_timeseries_2)
 
-    # follower_engagment_df = calculate_follower_engagement(nc_media_engagement_profile_merged_df)
-    # check_inf(follower_engagment_df)
-
     follower_loyalty_df = calculate_follower_loyalty(nc_time_series_merged_df)
     check_inf(follower_loyalty_df)
 
@@ -103,6 +131,7 @@ def main():
     ## create flexmatch score table by influencer scale type
     not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df)
     
+    seller_interest_info['ig_user_id'] = seller_interest_info['ig_user_id'].replace('', np.nan, regex=True)
     conn_list = seller_interest_info[(seller_interest_info['ig_user_id'].notnull()) & (seller_interest_info['ig_user_id'] != '')]['ig_user_id'].to_list()
     not_conn_user = seller_interest_info[~seller_interest_info['ig_user_id'].isin(conn_list)]
     not_conn_user = not_conn_user[['add1', 'interestcategory']]
@@ -138,7 +167,7 @@ def main():
     not_conn_user_main_category_info = not_conn_user_main_category_info[['acnt_id', 'main_category', 'top_3_category']]
     not_conn_user_main_category_info['acnt_id'] = not_conn_user_main_category_info['acnt_id'].astype(str)
 
-    not_connected_flexmatch_score_table_2 = pd.merge(not_connected_flexmatch_score_table, not_conn_user_main_category_info, on='acnt_id', how='left')
+    not_connected_flexmatch_score_table_2 = pd.merge(not_connected_flexmatch_score_table, not_conn_user_main_category_info, on='acnt_id', how='inner')
     print(not_connected_flexmatch_score_table_2['acnt_id'].nunique())
 
     # final preprocessing after table merge

@@ -174,6 +174,7 @@ def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follo
     from functools import reduce
 
     flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='left'), df_list)
+    flexmatch_score['ad_efficiency'] = flexmatch_score['ad_efficiency'].fillna(0)
     user_info_nm = user_info[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
     flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
     flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_retention_rate', 'avg_post_efficiency', 'avg_post_popularity', 'ad_efficiency']]
