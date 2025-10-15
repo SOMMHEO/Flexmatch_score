@@ -3,7 +3,7 @@ from modules.data_preprocessing import *
 from modules.not_connected_user_calcuate_flexmatch_score import *
 
 
-load_dotenv()
+load_dotenv('C:/Users/flexmatch/Desktop/ssom/code/4.Flexmatch_score/config/.env')
 aws_access_key = os.getenv("aws_accessKey")
 aws_secret_key = os.getenv("aws_secretKey")
 
@@ -21,24 +21,24 @@ def main():
     ## s3 data loading
     bucket_name = 'flexmatch-data'
     inner_table_list = ['RECENT_USER_INFO_MTR', 'TIME_SERIES_PROFILE_INFO', 'BY_USER_ID_MEDIA_DTL_INFO', 'BY_DATE_MEDIA_AGG_INFO']
-    external_table_list = ['EXTERNAL_RECENT_USER_INFO_MTR', 'EXTERNAL_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_BY_DATE_MEDIA_AGG_INFO']
+    # external_table_list = ['EXTERNAL_RECENT_USER_INFO_MTR', 'EXTERNAL_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_BY_DATE_MEDIA_AGG_INFO']
     # external_table_list_2 = ['EXTERNAL_2_RECENT_USER_INFO_MTR', 'EXTERNAL_2_TIME_SERIES_PROFILE_INFO', 'EXTERNAL_2_BY_USER_ID_MEDIA_DTL_INFO', 'EXTERNAL_2_BY_DATE_MEDIA_AGG_INFO']
 
     # connected_user & not_connected_user common table
     inner_merged_data_by_table = load_weekly_instagram_data(bucket_name, inner_table_list, weeks_back=2, target_filename='merged_data.parquet')
-    external_merged_data_by_table = load_weekly_instagram_data(bucket_name, external_table_list, weeks_back=2, target_filename='merged_data.parquet')
+    # external_merged_data_by_table = load_weekly_instagram_data(bucket_name, external_table_list, weeks_back=2, target_filename='merged_data.parquet')
     # external_merged_data_by_table_2 = load_weekly_instagram_data(bucket_name, external_table_list_2, weeks_back=2, target_filename='merged_data.parquet')
     
     # Create lists of dataframes to concatenate for prev_week
     prev_week_recent_user_info_mtr_list = [
         inner_merged_data_by_table['RECENT_USER_INFO_MTR']['prev_week'],
-        external_merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
+        # external_merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
         # external_merged_data_by_table_2['EXTERNAL_RECENT_USER_INFO_MTR']['prev_week']
     ]
 
     prev_week_time_series_profile_info_list = [
         inner_merged_data_by_table['TIME_SERIES_PROFILE_INFO']['prev_week'],
-        external_merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
+        # external_merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
         # external_merged_data_by_table_2['EXTERNAL_TIME_SERIES_PROFILE_INFO']['prev_week']
     ]
 
@@ -49,25 +49,25 @@ def main():
     # Create lists of dataframes to concatenate for current_week
     current_week_recent_user_info_mtr_list = [
         inner_merged_data_by_table['RECENT_USER_INFO_MTR']['current_week'],
-        external_merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
+        # external_merged_data_by_table['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
         # external_merged_data_by_table_2['EXTERNAL_RECENT_USER_INFO_MTR']['current_week']
     ]
 
     current_week_time_series_profile_info_list = [
         inner_merged_data_by_table['TIME_SERIES_PROFILE_INFO']['current_week'],
-        external_merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
+        # external_merged_data_by_table['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
         # external_merged_data_by_table_2['EXTERNAL_TIME_SERIES_PROFILE_INFO']['current_week']
     ]
 
     current_week_by_user_id_media_dtl_info_list = [
         inner_merged_data_by_table['BY_USER_ID_MEDIA_DTL_INFO']['current_week'],
-        external_merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
+        # external_merged_data_by_table['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
         # external_merged_data_by_table_2['EXTERNAL_BY_USER_ID_MEDIA_DTL_INFO']['current_week']
     ]
 
     current_week_by_date_media_agg_info_list = [
         inner_merged_data_by_table['BY_DATE_MEDIA_AGG_INFO']['current_week'],
-        external_merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
+        # external_merged_data_by_table['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
         # external_merged_data_by_table_2['EXTERNAL_BY_DATE_MEDIA_AGG_INFO']['current_week']
     ]
 
@@ -108,7 +108,7 @@ def main():
     # nc_recent_user_info_mtr.loc[:, 'influencer_scale_type'] = nc_recent_user_info_mtr.apply(influencer_scale_type, axis=1)
     nc_recent_user_info_mtr_2.loc[:,'influencer_scale_type'] = nc_recent_user_info_mtr_2.apply(influencer_scale_type, axis=1)
 
-    nc_user_info, nc_timeseries, nc_timeseries_2, nc_media_info, nc_media_agg, nc_all_merged_df, nc_media_engagement_merged_df, nc_media_engagement_profile_merged_df, nc_time_series_merged_df = create_merged_df(
+    nc_user_info, nc_timeseries, nc_timeseries_2, nc_media_info, nc_media_agg, nc_all_merged_df, nc_media_engagement_merged_df, nc_media_engagement_profile_merged_df, nc_time_series_merged_df = not_conn_create_merged_df(
                                                                                                                                                                             nc_recent_user_info_mtr_2,
                                                                                                                                                                             nc_time_series_profile_info,
                                                                                                                                                                             nc_time_series_profile_info_2,
@@ -128,8 +128,13 @@ def main():
     post_efficiency_df = calculate_post_efficiency_df(nc_media_engagement_profile_merged_df)
     check_inf(post_efficiency_df)
 
-    ## create flexmatch score table by influencer scale type
+    ad_efficiency_df = calculate_ad_efficiency(not_conn_user_main_category_info, sales_info, post_efficiency_df)
+
+    ### create flexmatch score table by influencer scale type
     not_connected_flexmatch_score_table = not_connected_user_flexmatch_score(nc_user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df)
+    
+    ## 2버전은 ad_efficiency 추가된 부분
+    # not_connected_flexmatch_score_table = not_connected_user_flexmatch_score_2(nc_user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, ad_efficiency_df)
     
     seller_interest_info['ig_user_id'] = seller_interest_info['ig_user_id'].replace('', np.nan, regex=True)
     conn_list = seller_interest_info[(seller_interest_info['ig_user_id'].notnull()) & (seller_interest_info['ig_user_id'] != '')]['ig_user_id'].to_list()
@@ -187,7 +192,7 @@ def main():
     
     ## DB Insert
     ssh = SSHMySQLConnector()
-    ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json') 
+    ssh.load_config_from_json('C:/Users/flexmatch/Desktop/ssom/code/4.Flexmatch_score/config/accounts.json') 
     ssh.connect(True)
     ssh.insert_query_with_lookup('op_mem_seller_score', list(normalized_all_dic.values()))
 

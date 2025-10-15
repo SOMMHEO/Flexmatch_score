@@ -17,7 +17,7 @@ def influencer_scale_type(row):
     else:
         return 'mega'
     
-def create_merged_df(user_info_df, timeseries_df, timeseries_df_2, media_info_df, media_agg_df):
+def not_conn_create_merged_df(user_info_df, timeseries_df, timeseries_df_2, media_info_df, media_agg_df):
     media_engagement_merged_df = pd.merge(media_info_df, media_agg_df, on='media_id', how='outer')
     # print(len(media_engagement_merged_df['acnt_id'].unique()))
 

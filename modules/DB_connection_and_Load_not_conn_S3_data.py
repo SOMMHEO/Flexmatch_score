@@ -110,7 +110,7 @@ class SSHMySQLConnector:
 
 def sendQuery(query):
         ssh = SSHMySQLConnector()
-        ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json')
+        ssh.load_config_from_json('C:/Users/flexmatch/Desktop/ssom/code/4.Flexmatch_score/config/accounts.json')
         ssh.connect()
         results = ssh.execute_query(query)
         # print(results)
