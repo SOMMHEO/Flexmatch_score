@@ -16,18 +16,19 @@ def check_inf(df):
     print(f"⚠️ inf / -inf 포함 행 개수: {len(invalid_rows)}개")
     # display(invalid_rows)
 
-def calculate_activity_score(recent_media_dtl_df): # 두 개의 테이블 중 가장 최근
-    media_dtl_copy = recent_media_dtl_df.copy()
-    media_dtl_copy = media_dtl_copy.drop_duplicates(subset=['acnt_id', 'media_id', 'media_cn'])
-    media_dtl_copy['reg_dt'] = pd.to_datetime(media_dtl_copy['reg_dt'])
-    media_dtl_copy = media_dtl_copy.sort_values(['acnt_id', 'reg_dt'])
+# recent_media_insight_df -> recent_media_insight_df로 변경
+def calculate_activity_score(recent_media_insight_df): # 두 개의 테이블 중 가장 최근
+    media_insight_copy = recent_media_insight_df.copy()
+    media_insight_copy = media_insight_copy.drop_duplicates(subset=['acnt_id', 'media_id', 'media_cn'])
+    media_insight_copy['reg_dt'] = pd.to_datetime(media_insight_copy['reg_dt'])
+    media_insight_copy = media_insight_copy.sort_values(['acnt_id', 'reg_dt'])
 
     # 게시물 간격 계산
-    media_dtl_copy['prev_reg_dt'] = media_dtl_copy.groupby('acnt_id')['reg_dt'].shift(1)
-    media_dtl_copy['gap_days'] = (media_dtl_copy['reg_dt'] - media_dtl_copy['prev_reg_dt']).dt.days
+    media_insight_copy['prev_reg_dt'] = media_insight_copy.groupby('acnt_id')['reg_dt'].shift(1)
+    media_insight_copy['gap_days'] = (media_insight_copy['reg_dt'] - media_insight_copy['prev_reg_dt']).dt.days
 
     # gap_days가 NaN인 첫 번째 포스트 제외 후 평균 간격 계산
-    activity_df = media_dtl_copy.dropna(subset=['gap_days']).groupby('acnt_id')['gap_days'].mean().reset_index()
+    activity_df = media_insight_copy.dropna(subset=['gap_days']).groupby('acnt_id')['gap_days'].mean().reset_index()
     activity_df.rename(columns={'gap_days': 'avg_upload_interval'}, inplace=True)
 
     # 활동성 점수 계산 (간격의 역수로 환산) -> 점수 정규화 (업로드 간격이 짧을수록 점수가 높아지도록 역수를 취해서 계산한 것)
@@ -152,7 +153,7 @@ def calculate_ad_efficiency(conn_user_main_category_info, sales_info, post_effic
     
     return db_merged_data_3
 
-def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df):
+def connected_user_flexmatch_score(all_merged_df, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df):
     # 크리에이터 활동성
     creator_activity_score = activity_df[['acnt_id', 'activity_score']]
     # 트렌드지수 (팔로워 순변화량)
@@ -171,15 +172,30 @@ def connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follo
     # data_list
     df_list = [creator_activity_score, creator_follow_growth_rate, follower_loyalty, post_efficiency, post_popularity, ad_efficiency]
 
+    # from functools import reduce
+
+    # flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='left'), df_list)
+    # flexmatch_score['ad_efficiency'] = flexmatch_score['ad_efficiency'].fillna(0)
+    # user_info_nm = user_info[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
+    # flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
+    # flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_retention_rate', 'avg_post_efficiency', 'avg_post_popularity', 'ad_efficiency']]
+
+    # connected_flexmatch_score_table = flexmatch_score.copy()
+    # connected_flexmatch_score_table.dropna(inplace=True)
+    
+    # return connected_flexmatch_score_table
+    
     from functools import reduce
 
-    flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='left'), df_list)
+    flexmatch_score = reduce(lambda left, right: pd.merge(left, right, on='acnt_id', how='outer'), df_list)
     flexmatch_score['ad_efficiency'] = flexmatch_score['ad_efficiency'].fillna(0)
-    user_info_nm = user_info[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
-    flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id')
+    
+    user_info_nm = all_merged_df[['acnt_id', 'acnt_nm', 'influencer_scale_type']]
+    flexmatch_score = pd.merge(flexmatch_score, user_info_nm, on='acnt_id', how='inner')
     flexmatch_score = flexmatch_score[['acnt_id', 'acnt_nm', 'influencer_scale_type', 'activity_score', 'follow_growth_rate', 'follower_retention_rate', 'avg_post_efficiency', 'avg_post_popularity', 'ad_efficiency']]
 
     connected_flexmatch_score_table = flexmatch_score.copy()
+    connected_flexmatch_score_table = connected_flexmatch_score_table.drop_duplicates(subset = ['acnt_id', 'acnt_nm']).reset_index(drop=True)
     connected_flexmatch_score_table.dropna(inplace=True)
     
     return connected_flexmatch_score_table

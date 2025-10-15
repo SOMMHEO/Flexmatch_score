@@ -109,7 +109,7 @@ class SSHMySQLConnector:
 
 def sendQuery(query):
         ssh = SSHMySQLConnector()
-        ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json')
+        ssh.load_config_from_json('C:/Users/flexmatch/Desktop/ssom/code/4.Flexmatch_score/config/accounts.json')
         ssh.connect()
         results = ssh.execute_query(query)
         # print(results)
@@ -301,6 +301,54 @@ def load_last_weekly_instagram_data(bucket_name, table_list, target_filename='me
             final_data[table_name] = {
                 'yesterday': date_data[day_before_last_week],
                 'today': date_data[last_week]
+            }
+        else:
+            print(f"[Warning] Missing data for {table_name} on either {day_before_last_week} or {last_week}")
+
+    return final_data
+
+## s3 -> db로 데이터 마이그레이션 진행 이후 수정 코드
+def get_weekly_instagram_data_from_db(table_list): 
+    # db 연결
+    ssh = SSHMySQLConnector()
+    ssh.load_config_from_json('C:/Users/flexmatch/Desktop/ssom/code/4.Flexmatch_score/config/accounts.json')
+    ssh.connect()
+    
+    # 날짜 계산
+    today = datetime.now()
+    day_before_last_week = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+    last_week = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+    recent_dates = [day_before_last_week, last_week]
+
+    recent_data_by_table = {table_name: {} for table_name in table_list}
+
+    for table_name in table_list:
+        for date_str in recent_dates:
+            try:
+                query = f"""
+                    SELECT *
+                    FROM {table_name}
+                    WHERE DATE(reg_date) = '{date_str}'
+                """
+                df = ssh.execute_query(query)
+                if df.empty:
+                    print(f"[Info] No data found for {table_name} on {date_str}")
+                    continue
+                recent_data_by_table[table_name][date_str] = df
+                print(f"[Success] Loaded data for {table_name}, date={date_str}")
+            except Exception as e:
+                print(f"[Error] Failed to query {table_name} on {date_str}: {e}")
+
+    # SSH 연결 종료
+    ssh.close()
+
+    # 결과 구조 정리
+    final_data = {}
+    for table_name, date_data in recent_data_by_table.items():
+        if day_before_last_week in date_data and last_week in date_data:
+            final_data[table_name] = {
+                'day_before_last_week': date_data[day_before_last_week],
+                'last_week': date_data[last_week]
             }
         else:
             print(f"[Warning] Missing data for {table_name} on either {day_before_last_week} or {last_week}")
