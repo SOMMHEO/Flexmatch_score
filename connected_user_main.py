@@ -19,7 +19,6 @@ load_dotenv()
 # )
 
 
-
 def main():
     # DB data loading
     sales_info, seller_interest_info, conn_user_main_category_info = get_all_infos()
@@ -28,12 +27,12 @@ def main():
     # bucket_name = 'flexmatch-data'
     table_list = [
         # 'CONN_v2_RECENT_USER_INFO_MTR',
-        'CONN_v2_TIME_SERIES_PROFILE_INFO',
+        'S3_CONN_v2_TIME_SERIES_PROFILE_INFO',
         # 'CONN_v2_BY_USER_ID_MEDIA_DTL_INFO',
-        'CONN_v2_BY_DATE_MEDIA_AGG_INFO',
-        'CONN_v2_PROFILE_INSIGHT_DTL',
-        'CONN_v2_MEDIA_INSIGHT_CUM',
-        'CONN_v2_PROFILE_INSIGHT_FOLLOWTYPE'
+        'S3_CONN_v2_BY_DATE_MEDIA_AGG_INFO',
+        'S3_CONN_v2_PROFILE_INSIGHT_DTL',
+        'S3_CONN_v2_MEDIA_INSIGHT_CUM',
+        'S3_CONN_v2_PROFILE_INSIGHT_FOLLOWTYPE'
     ]
 
     # connected_user & not_connected_user common table
@@ -163,11 +162,11 @@ def main():
     post_popularity_df = calculate_post_popularity_df(media_engagement_profile_merged_df)
     check_inf(post_popularity_df)
 
-    ad_efficiency_df = calculate_ad_efficiency(conn_user_main_category_info, sales_info)
+    ad_efficiency_df = calculate_ad_efficiency(conn_user_main_category_info, sales_info, post_efficiency_df)
     check_inf(ad_efficiency_df)
 
     ## create flexmatch score table by influencer scale type
-    connected_flexmatch_score_table = connected_user_flexmatch_score(user_info, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df)
+    connected_flexmatch_score_table = connected_user_flexmatch_score(all_merged_df, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df)
     
     seller_interest_info['ig_user_id'] = seller_interest_info['ig_user_id'].replace('', np.nan, regex=True)
     conn_user = seller_interest_info[(seller_interest_info['ig_user_id'].notnull()) & (seller_interest_info['ig_user_id'] != '')]
@@ -217,7 +216,7 @@ def main():
     
     ## DB Insert
     ssh = SSHMySQLConnector()
-    ssh.load_config_from_json('C:/Users/ehddl/Desktop/업무/code/config/ssh_db_config.json') 
+    ssh.load_config_from_json('C:/Users/flexmatch/Desktop/ssom/code/4.Flexmatch_score/config/accounts.json') 
     ssh.connect(True)
     ssh.insert_query_with_lookup('op_mem_seller_score', list(normalized_all_dic.values()))
 

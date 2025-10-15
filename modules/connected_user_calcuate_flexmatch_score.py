@@ -153,6 +153,19 @@ def calculate_ad_efficiency(conn_user_main_category_info, sales_info, post_effic
     
     return db_merged_data_3
 
+# def calculate_ad_efficiency(conn_user_main_category_info, sales_info):
+#     conn_user_main_category_info['add1'] = conn_user_main_category_info['acnt_nm']
+#     db_merged_data = pd.merge(sales_info, conn_user_main_category_info, on='add1')
+#     db_merged_data = db_merged_data[['uid', 'user_id', 'member_uid', 'add1', 'acnt_id', 'acnt_nm', 'storeid', 'total_visit', 'total_order', 'match_total_price']]
+
+#     db_merged_data['acnt_id'] = db_merged_data['acnt_id'].astype(str)
+#     db_merged_data_2 = pd.merge(db_merged_data, post_efficiency_df, on='acnt_id', how='left')
+
+#     db_merged_data_3= db_merged_data_2[(db_merged_data_2['total_order']!=0) & (db_merged_data_2['match_total_price']!=0)].dropna()
+#     db_merged_data_3['ad_efficiency'] = db_merged_data_3['total_order'] / db_merged_data_3['avg_post_efficiency']
+    
+#     return db_merged_data_3
+
 def connected_user_flexmatch_score(all_merged_df, activity_df, growth_rate_df, follower_loyalty_df, post_efficiency_df, post_popularity_df, ad_efficiency_df):
     # 크리에이터 활동성
     creator_activity_score = activity_df[['acnt_id', 'activity_score']]
